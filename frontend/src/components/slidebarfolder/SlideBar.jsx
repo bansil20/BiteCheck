@@ -9,7 +9,7 @@ function SlideBar(){
         <>
              {/* Sidebar */}
                 <div className="sidebar bg-dark text-white p-3">
-                    <h3 className="mb-4">Smart Food</h3>
+                    <h3 className="mb-4">Bite Check</h3>
                     <hr style={{backgroundColor: "white"}} />
                     <p>Main Menu</p>
                     <Nav className="flex-column">
