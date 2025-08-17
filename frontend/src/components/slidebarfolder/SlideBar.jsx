@@ -16,7 +16,7 @@ function SlideBar(){
                     
                     <Nav.Link href="#" className="text-white"><MdFace /> Face Attendance</Nav.Link>
                     <Nav.Link href={PATHS.DASHBOARD} className="text-white"><FaTachometerAlt /> Dashboard</Nav.Link>
-                    {/* <Nav.Link href={PATHS.STUDENTDETAILS} className="text-white"><FaUserGraduate /> Student Details</Nav.Link> */}
+                    <Nav.Link href={PATHS.STUDENTDETAILS} className="text-white"><FaUserGraduate /> Student Details</Nav.Link>
                     <Nav.Link href={PATHS.STUDENTFEEDBACK} className="text-white"><MdFeedback /> Meal Feedback</Nav.Link>
                     <Nav.Link href="#" className="text-white"><FaDownload /> Download Report</Nav.Link>
                     <Nav.Link href="#" className="text-white"><FaRegClock /> Meal Time Table</Nav.Link>
