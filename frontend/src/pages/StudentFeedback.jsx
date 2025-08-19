@@ -13,7 +13,8 @@ function StudentFeedback() {
       <div className="main-content flex-grow-1">
         {/* Top Navbar */}
         <Navbar bg="light" expand="lg" className="px-4 shadow-sm">
-          <Navbar.Brand>Welcome Admin</Navbar.Brand>
+                    <Navbar.Brand className="pb-3 mb-3 mt-3 border-bottom text-start ps-3"><h4 className="fw-bold mb-0"> Welcome Admin</h4></Navbar.Brand>
+
           <Nav className="ms-auto">
             <Nav.Link href="#">
               <FaUser />

@@ -8,6 +8,7 @@ const PATHS = {
     STUDENTFEEDBACK : "/student_feedback",
     MEALRATING : "/meal_rating",
     MEALAVERAGE : "/meal_average/:id",
+    ADDSTUDENTPROFILE : "/add_student_profile",
   }
 
   export default PATHS;
