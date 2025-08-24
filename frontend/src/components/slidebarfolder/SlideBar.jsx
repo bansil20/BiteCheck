@@ -25,7 +25,7 @@ function SlideBar() {
   }, [collapsed]);
 
   const menuItems = [
-    { title: "Face Attendance", icon: <MdFace />, path: "#" },
+    { title: "Face Attendance", icon: <MdFace />, path: PATHS.FACEDETECTION },
     { title: "Dashboard", icon: <FaTachometerAlt />, path: PATHS.DASHBOARD },
     { title: "Student Details", icon: <FaUserGraduate />, path: PATHS.STUDENTDETAILS },
     { title: "Meal Feedback", icon: <MdFeedback />, path: PATHS.STUDENTFEEDBACK },

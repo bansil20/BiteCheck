@@ -65,7 +65,7 @@ function StudentFeedback() {
 
             {/* Comment Box */}
             <div className="mb-4">
-              <label className="form-label fw-bold">Your Comment</label>
+              <label className="form-label fw-bold">Your Comment:</label>
               <textarea
                 className="form-control"
                 rows="3"
@@ -73,6 +73,9 @@ function StudentFeedback() {
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
               />
+                <label className="form-label fw-bold">Student Enrollement Number:</label>
+                <br/>
+                <input type={Text}  className="form-control" ></input>
             </div>
 
             {/* Would You Eat Again */}

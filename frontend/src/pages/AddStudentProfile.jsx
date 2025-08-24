@@ -1,225 +1,201 @@
-import { useState, useRef } from "react";
-import { Button, Card, Col, Container, Form, Row } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
+import React, {useState, useRef} from "react";
+import {Button, Card, Col, Container, Form, Row} from "react-bootstrap";
+import Webcam from "react-webcam";
+import axios from "axios";
+import {useNavigate} from "react-router-dom";
 
 function AddStudentProfile() {
-  const navigate = useNavigate();
-  const fileInputRef = useRef(null);
+    const navigate = useNavigate();
 
-  // Form state
-  const [formData, setFormData] = useState({
-    name: "",
-    enrollment: "",
-    email: "",
-    phone: "",
-    course: "",
-    hostelRoom: "",
-    address: "",
-    guardian: "",
-    guardianPhone: "",
-    image: null, // store image file
-  });
+    const [formData, setFormData] = useState({
+        studname: "",
+        studpnr: "",
+        studphone: "",
+        studcourse: "",
+        studemail: "",
+        studremark: "",
+        studhostelroom: "",
+        studface: null, // temporary storage of captured face
+    });
 
-  // Handle input change
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
+    const [showCamera, setShowCamera] = useState(false);
+    const [message, setMessage] = useState("");
 
-  // Handle image selection from camera
-  const handleImageCapture = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setFormData({ ...formData, image: file });
-    }
-  };
 
-  // Handle form submission
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log("New Student Data:", formData);
+    const webcamRef = useRef(null);
+    const handleChange = (e) => {
+        const {name, value} = e.target;
+        setFormData({...formData, [name]: value});
+    };
 
-    // 👉 Later: Upload formData including image file to backend
-    alert("Student added successfully!");
-    navigate("/student_details");
-  };
 
-  return (
-    <Container className="py-4">
-      <Row className="justify-content-center">
-        <Col md={8}>
-          <Card className="shadow-lg border-0 rounded-4">
-            <Card.Body className="p-4">
-              <h3 className="mb-4 text-center fw-bold text-primary">
-                Add New Student
-              </h3>
+    const handleCaptureFace = () => {
+        if (!webcamRef.current) return;
+        const imageSrc = webcamRef.current.getScreenshot();
+        if (imageSrc) {
+            setFormData({...formData, studface: imageSrc});
+            // store in state
+            setMessage("✅ Face captured successfully");
+            setShowCamera(false); // hide camera if desired
+        }
+    };
 
-              <Form onSubmit={handleSubmit}>
-                {/* Student Name */}
-                <Form.Group className="mb-3">
-                  <Form.Label>Full Name</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="name"
-                    placeholder="Enter student name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
 
-                {/* Enrollment No */}
-                <Form.Group className="mb-3">
-                  <Form.Label>Enrollment Number</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="enrollment"
-                    placeholder="Enter enrollment number"
-                    value={formData.enrollment}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
+    const handleSubmit = async (e) => {
+        e.preventDefault(); // prevent page reload
 
-                {/* Email */}
-                <Form.Group className="mb-3">
-                  <Form.Label>Email</Form.Label>
-                  <Form.Control
-                    type="email"
-                    name="email"
-                    placeholder="Enter email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
+        try {
+            const res = await axios.post("http://127.0.0.1:5000/add_student", formData);
+            alert(res.data.message);
+            navigate("/dashboard");
+        } catch (err) {
+            console.error(err);
+            alert("❌ Error saving student");
+        }
+    };
 
-                {/* Phone */}
-                <Form.Group className="mb-3">
-                  <Form.Label>Phone</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="phone"
-                    placeholder="Enter phone number"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
 
-                {/* Course */}
-                <Form.Group className="mb-3">
-                  <Form.Label>Course</Form.Label>
-                  <Form.Select
-                    name="course"
-                    value={formData.course}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="">-- Select Course --</option>
-                    <option value="B.Tech Computer Science">
-                      B.Tech Computer Science
-                    </option>
-                    <option value="BBA">BBA</option>
-                    <option value="MBA">MBA</option>
-                    <option value="MCA">MCA</option>
-                  </Form.Select>
-                </Form.Group>
+    return (
+        <Container className="mt-4">
+            <Card className="p-4 shadow-lg">
+                <h2 className="text-center mb-4">Add Student Profile</h2>
 
-                {/* Hostel Room */}
-                <Form.Group className="mb-3">
-                  <Form.Label>Hostel Room</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="hostelRoom"
-                    placeholder="Enter hostel room"
-                    value={formData.hostelRoom}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
+                <Form onSubmit={handleSubmit}>
+                    <Row>
+                        <Col md={6}>
+                            <Form.Group>
+                                <Form.Label>Full Name</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    name="studname"
+                                    value={formData.studname}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </Form.Group>
 
-                {/* Address */}
-                <Form.Group className="mb-3">
-                  <Form.Label>Address</Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    rows={2}
-                    name="address"
-                    placeholder="Enter address"
-                    value={formData.address}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
+                            <Form.Group>
+                                <Form.Label>Enrollment Number</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    name="studpnr"
+                                    value={formData.studpnr}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </Form.Group>
 
-                {/* Guardian */}
-                <Form.Group className="mb-3">
-                  <Form.Label>Guardian Name</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="guardian"
-                    placeholder="Enter guardian name"
-                    value={formData.guardian}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
+                            <Form.Group>
+                                <Form.Label>Phone</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    name="studphone"
+                                    value={formData.studphone}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </Form.Group>
 
-                {/* Guardian Phone */}
-                <Form.Group className="mb-3">
-                  <Form.Label>Guardian Phone</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="guardianPhone"
-                    placeholder="Enter guardian phone"
-                    value={formData.guardianPhone}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
+                            <Form.Group>
+                                <Form.Label>Email</Form.Label>
+                                <Form.Control
+                                    type="email"
+                                    name="studemail"
+                                    value={formData.studemail}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </Form.Group>
+                        </Col>
 
-                {/* Capture Image */}
-                <Form.Group className="mb-4">
-                  <Form.Label>Capture Student Photo</Form.Label>
-                  <div className="d-flex align-items-center gap-3">
+                        <Col md={6}>
+                            <Form.Group>
+                                <Form.Label>Course</Form.Label>
+                                <Form.Select
+                                    name="studcourse"
+                                    value={formData.studcourse}
+                                    onChange={handleChange}
+                                    required
+                                >
+                                    <option value="">Select Course</option>
+                                    <option value="B.Tech">B.Tech</option>
+                                    <option value="MBA">MBA</option>
+                                    <option value="MCA">MCA</option>
+                                </Form.Select>
+                            </Form.Group>
+
+                            <Form.Group>
+                                <Form.Label>Hostel Room No.</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    name="studhostelroom"
+                                    value={formData.studhostelroom}
+                                    onChange={handleChange}
+                                />
+                            </Form.Group>
+
+                            <Form.Group>
+                                <Form.Label>Remark</Form.Label>
+                                <Form.Control
+                                    as="textarea"
+                                    name="studremark"
+                                    value={formData.studremark}
+                                    onChange={handleChange}
+                                />
+                            </Form.Group>
+
+                            {/* Camera Button */}
+                            <div className="mt-3">
+                                {/* Open Camera Button */}
+                                <Button variant="primary" onClick={() => setShowCamera(true)}>
+                                    Open Camera
+                                </Button>
+                            </div>
+
+                            {/* Show Camera and Register Face Button */}
+                            {showCamera && (
+                                <div className="mt-3 text-center">
+                                    <Webcam
+                                        ref={webcamRef}
+                                        screenshotFormat="image/jpeg"
+                                        width={300}
+                                        height={200}
+                                    />
+                                    <Button
+                                        variant="success"
+                                        className="mt-2"
+                                        onClick={handleCaptureFace} // <-- captures face locally
+                                    >
+                                        Register Face
+                                    </Button>
+                                </div>
+                            )}
+
+                            {message && <p className="mt-2 text-center">{message}</p>}
+                        </Col>
+                    </Row>
+
+                    {/* Save Student Button */}
+                    <div className="text-center mt-4">
+                        <Button variant="success" type="submit">
+                            Save Student
+                        </Button>
+                    </div>
                     <Button
-                      variant="outline-primary"
-                      onClick={() => fileInputRef.current.click()}
+                        variant="secondary"
+                        className="ms-2"
+                        onClick={() => navigate("/dashboard")}
                     >
-                      Open Camera
+                        Cancel
                     </Button>
-                    {formData.image && (
-                      <span className="text-success fw-bold">
-                        📷 Image Captured
-                      </span>
-                    )}
-                  </div>
-                  <Form.Control
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    ref={fileInputRef}
-                    style={{ display: "none" }}
-                    onChange={handleImageCapture}
-                  />
-                </Form.Group>
 
-                {/* Buttons */}
-                <div className="d-flex justify-content-between">
-                  <Button
-                    variant="secondary"
-                    onClick={() => navigate("/student_details")}
-                  >
-                    Cancel
-                  </Button>
-                  <Button variant="primary" type="submit">
-                    Save Student
-                  </Button>
-                </div>
-              </Form>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-    </Container>
-  );
+
+                </Form>
+            </Card>
+        </Container>
+
+    )
+        ;
 }
 
 export default AddStudentProfile;

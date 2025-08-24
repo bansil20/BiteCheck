@@ -12,6 +12,8 @@ import MealRating from "./pages/MealRating";
 import MealAverage from "./pages/MealAverage";
 import AddStudentProfile from "./pages/AddStudentProfile";
 import Aos from "aos";
+import FaceDetection from "./pages/FaceDetection";
+
 function App() {
 
   useEffect(() => {
@@ -30,6 +32,7 @@ function App() {
         <Route path={PATHS.STUDENTFEEDBACK} element={<LayoutSlideBar><StudentFeedback /></LayoutSlideBar>} />
         <Route path={PATHS.MEALRATING} element={<LayoutSlideBar><MealRating/></LayoutSlideBar>} />
         <Route path={PATHS.MEALAVERAGE} element={<LayoutSlideBar><MealAverage /></LayoutSlideBar>} />
+        <Route path={PATHS.FACEDETECTION} element={<LayoutSlideBar><FaceDetection /></LayoutSlideBar>} />
       </Routes>
     </Router>
   );
