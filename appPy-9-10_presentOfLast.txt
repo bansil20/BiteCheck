@@ -1,10 +1,10 @@
 import os
-import base64
-import cv2
-import numpy as np
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+
 from PIL import Image
+from flask import request, jsonify
+import base64, cv2, numpy as np
+from flask import Flask
+from flask_cors import CORS
 from models import db, Student
 from flask_migrate import Migrate
 
@@ -12,6 +12,7 @@ app = Flask(__name__)
 CORS(app)
 
 # ================= DATABASE CONFIG =================
+# MySQL (for production):
 app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:@localhost:3306/bitecheck"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db.init_app(app)
@@ -21,14 +22,13 @@ migrate = Migrate(app, db)
 with app.app_context():
     db.create_all()
 
-# ================= FACE DATA CONFIG =================
+# Paths for face data
 DATASET_PATH = "faces_dataset"
 if not os.path.exists(DATASET_PATH):
     os.makedirs(DATASET_PATH)
 
+RECOGNIZER = cv2.face.LBPHFaceRecognizer_create()
 HAAR_CASCADE = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-TRAINER_PATH = "trainer.yml"
-
 
 # -------------------- HELPERS --------------------
 def decode_image(img_data):
@@ -38,20 +38,14 @@ def decode_image(img_data):
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     return img
 
-
-def train_or_update_recognizer(new_student_id):
-    """
-    Update the recognizer incrementally when a new student is added.
-    Re-trains including all folders but avoids losing previous learned data.
-    """
+def train_recognizer():
     recognizer = cv2.face.LBPHFaceRecognizer_create()
 
     face_samples = []
     ids = []
 
-    # Load all student folders
     for folder in os.listdir(DATASET_PATH):
-        student_id = int(folder.split("_")[0])
+        student_id = int(folder.split("_")[0])  # folder name = id_name
         folder_path = os.path.join(DATASET_PATH, folder)
 
         for image_name in os.listdir(folder_path):
@@ -61,18 +55,16 @@ def train_or_update_recognizer(new_student_id):
 
             faces = HAAR_CASCADE.detectMultiScale(img_np)
             for (x, y, w, h) in faces:
-                face_samples.append(img_np[y:y + h, x:x + w])
+                face_samples.append(img_np[y:y+h, x:x+w])
                 ids.append(student_id)
 
     if len(face_samples) == 0:
         print("❌ No faces found in dataset. Train aborted.")
         return
 
-    # Train model again including all known faces
     recognizer.train(face_samples, np.array(ids))
-    recognizer.write(TRAINER_PATH)
-    print(f"✅ Model trained/updated successfully. Total students: {len(set(ids))}")
-
+    recognizer.write("trainer.yml")  # <-- this saves the model
+    print("✅ Model trained and saved as trainer.yml")
 
 # -------------------- ROUTES --------------------
 @app.route("/add_student", methods=["POST"])
@@ -91,10 +83,8 @@ def add_student():
         studphone=int(data.get("studphone", 0)),
         studcourse=data.get("studcourse"),
         studemail=data.get("studemail"),
-        studbloodgrp=data.get("studbloodgrp"),
         studremark=data.get("studremark"),
         studhostelroom=data.get("studhostelroom"),
-        studface={"base64": img_data}
     )
     db.session.add(new_student)
     db.session.commit()
@@ -111,30 +101,17 @@ def add_student():
     student_folder = os.path.join(DATASET_PATH, f"{new_student.studid}_{new_student.studname}")
     os.makedirs(student_folder, exist_ok=True)
 
-    # Save cropped face
+    # Save cropped faces
     for i, (x, y, w, h) in enumerate(faces):
-        face_img = gray[y:y + h, x:x + w]
+        face_img = gray[y:y+h, x:x+w]
         cv2.imwrite(os.path.join(student_folder, f"face_{i}.jpg"), face_img)
 
-    # Train or update recognizer
-    train_or_update_recognizer(new_student.studid)
+    # Retrain LBPH model
+    train_recognizer()
 
     return jsonify({"message": "✅ Student registered with face successfully"})
 
-@app.route("/get_student", methods=["GET"])
-def get_students():
-    students = Student.query.all()
-    return jsonify([{"id": student.studid,
-                     "name": student.studname,
-                     "pnr" : student.studpnr,
-                     "phone" : student.studphone,
-                     "course" : student.studcourse,
-                     "email" : student.studemail,
-                     "bloodgrp" : student.studbloodgrp,
-                     "remark" : student.studremark,
-                     "hostelroom" : student.studhostelroom,
-                     "face" : student.studface
-                     } for student in students])
+
 
 @app.route("/recognize_face", methods=["POST"])
 def recognize_face():
@@ -151,37 +128,34 @@ def recognize_face():
     if len(faces) == 0:
         return jsonify({"recognized": False, "message": "❌ No face detected"}), 400
 
-    # Check if model exists
-    if not os.path.exists(TRAINER_PATH):
+    # Load trained LBPH model
+    if not os.path.exists("trainer.yml"):
         return jsonify({"recognized": False, "message": "❌ Model not trained yet"}), 400
 
     recognizer = cv2.face.LBPHFaceRecognizer_create()
-    recognizer.read(TRAINER_PATH)
+    recognizer.read("trainer.yml")
 
     # Recognize face
     for (x, y, w, h) in faces:
-        face_img = gray[y:y + h, x:x + w]
+        face_img = gray[y:y+h, x:x+w]
         label, confidence = recognizer.predict(face_img)
 
-        # Lower confidence value = more accurate
-        if confidence < 70:
+        if confidence < 70:  # lower = more confident
             student = Student.query.get(label)
             if student:
-                print(f"✅ Recognized: {student.studname} (Confidence: {confidence:.2f})")
                 return jsonify({"recognized": True, "name": student.studname})
             else:
                 return jsonify({"recognized": False, "message": "❌ Unknown student"}), 404
 
-    return jsonify({"recognized": False, "message": "❌ Face not recognized"}), 400
+    return jsonify({"recognized": False, "message": "❌ Not ffg recognized"}), 400
+
+
 
 
 
 
 
 if __name__ == "__main__":
-    # Load existing model or create new one
-    if os.path.exists(TRAINER_PATH):
-        print("✅ Existing model found and ready.")
-    else:
-        print("⚠️ No trained model yet. It will be created on first registration.")
+    # Train model at startup
+    train_recognizer()
     app.run(debug=True)

@@ -4,7 +4,7 @@ const PATHS = {
     LOGIN : "/login",
     REGISTER : "/register",
     STUDENTDETAILS : "/student_details",
-    STUDENTPROFILE : "/student_profile/:id",
+    STUDENTPROFILE : "/student_profile/",
     STUDENTFEEDBACK : "/student_feedback",
     MEALRATING : "/meal_rating",
     MEALAVERAGE : "/meal_average/:id",

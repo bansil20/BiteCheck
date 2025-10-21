@@ -1,7 +1,15 @@
 import { Container, Nav, Navbar } from "react-bootstrap";
 import { FaUser } from "react-icons/fa";
+import { useLocation } from "react-router-dom";
+
 
 function StudentProfile(){
+
+    const { student } = useLocation().state; // student object passed
+    console.log(student);
+
+
+
     return(
         <div className="dashboard-wrapper d-flex">
             {/* Upper nav*/}
@@ -30,7 +38,7 @@ function StudentProfile(){
       <div className="row align-items-center mb-4">
         <div className="col-auto" style={{border : 1}}>
           <img
-            src="https://plus.unsplash.com/premium_photo-1749669869018-8a33825100f0?q=80&w=688&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+            src={student.face?.base64}
             alt="Student"
             style={{height: "120px",
                           width: "100px",
@@ -40,7 +48,7 @@ function StudentProfile(){
           />
         </div>
         <div className="col">
-          <h3 className="fw-bold mb-0">John Smith</h3>
+          <h3 className="fw-bold mb-0">{student.name}</h3>
         </div>
       </div>
 
@@ -52,8 +60,7 @@ function StudentProfile(){
             <div className="card-header fw-bold">Remarks</div>
             <div className="card-body">
               <p>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed ut
-                perspiciatis unde omnis iste natus error sit voluptatem.
+                  {student.remark}
               </p>
             </div>
           </div>
@@ -64,11 +71,12 @@ function StudentProfile(){
           <div className="card">
             <div className="card-header fw-bold">Details</div>
             <div className="card-body">
-              <p><strong>Student ID:</strong> 12345</p>
-              <p><strong>Phone:</strong> +91 98765 43210</p>
-              <p><strong>Email:</strong> john@example.com</p>
-              <p><strong>Hostel Room:</strong> A-202</p>
-              <p><strong>Blood Group:</strong> O+</p>
+              <p><strong>Student ID:</strong> {student.pnr}</p>
+              <p><strong>Phone:</strong> +91 {student.phone}</p>
+              <p><strong>Course:</strong> {student.course}</p>
+              <p><strong>Email:</strong> {student.email}</p>
+              <p><strong>Hostel Room:</strong> {student.hostelroom}</p>
+              <p><strong>Blood Group:</strong> {student.bloodgrp}</p>
             </div>
           </div>
         </div>

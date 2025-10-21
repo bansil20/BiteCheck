@@ -22,6 +22,7 @@ class Student(db.Model):
     studremark = db.Column(db.String(50), nullable=False)
     studhostelroom = db.Column(db.String(50), nullable=False)
     studface = db.Column(sqlalchemy.JSON, nullable=True)
+    studbloodgrp = db.Column(db.String(10), nullable=False)
 
     attendances = db.relationship('Attendance', backref='student', lazy=True)
     feedbacks = db.relationship('Feedback', backref='student', lazy=True)

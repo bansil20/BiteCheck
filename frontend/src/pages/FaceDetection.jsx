@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import Webcam from "react-webcam";
 import axios from "axios";
 
@@ -6,34 +6,52 @@ function FaceDetection() {
   const webcamRef = useRef(null);
   const [message, setMessage] = useState("");
 
-  // Function to mark attendance
-  const markAttendance = async () => {
+  useEffect(() => {
+    // Start continuous scanning every 2 seconds
+    const id = setInterval(() => {
+      captureAndRecognize();
+    }, 2000);
+
+    return () => clearInterval(id); // cleanup on unmount
+  }, []);
+
+  const captureAndRecognize = async () => {
+    if (!webcamRef.current) return;
+    const imageSrc = webcamRef.current.getScreenshot();
+    if (!imageSrc) return;
+
     try {
-      const imageSrc = webcamRef.current.getScreenshot();
-      const res = await axios.post("http://127.0.0.1:5000/attendance", {
+      const res = await axios.post("http://127.0.0.1:5000/recognize_face", {
         image: imageSrc,
       });
-      setMessage(res.data.message);
+
+      if (res.data.recognized) {
+        setMessage(`${res.data.name} - Present ✅`);
+      } else {
+        setMessage("Not recognized ❌");
+      }
     } catch (err) {
-      setMessage("❌ Error marking attendance");
+      console.error(err);
+        if (err.response && err.response.data) {
+            setMessage(err.response.data.message || "❌ Error recognizing face");
+        } else {
+            setMessage("❌ Error recognizing face");
+  }
     }
   };
 
   return (
     <div style={{ textAlign: "center" }}>
-      <h2>📸 Face Attendance</h2>
+      <h2>📸 Face Recognition</h2>
       <Webcam
         ref={webcamRef}
         screenshotFormat="image/jpeg"
-        style={{ width: "60%", borderRadius: "10px", marginBottom: "15px" }}
+        style={{
+          width: "60%",
+          borderRadius: "10px",
+          marginBottom: "15px",
+        }}
       />
-      <br />
-      <button
-        onClick={markAttendance}
-        style={{ margin: "10px", padding: "10px 20px", fontSize: "16px" }}
-      >
-        Mark Attendance
-      </button>
       <h3>{message}</h3>
     </div>
   );

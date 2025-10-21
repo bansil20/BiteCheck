@@ -15,6 +15,7 @@ function AddStudentProfile() {
         studemail: "",
         studremark: "",
         studhostelroom: "",
+        studbloodgrp: "",
         studface: null, // temporary storage of captured face
     });
 
@@ -43,9 +44,13 @@ function AddStudentProfile() {
 
     const handleSubmit = async (e) => {
         e.preventDefault(); // prevent page reload
+            console.log("foemsddfsdfsdf");
 
         try {
+            console.log("foem",formData);
             const res = await axios.post("http://127.0.0.1:5000/add_student", formData);
+            console.log("rem",res);
+
             alert(res.data.message);
             navigate("/dashboard");
         } catch (err) {
@@ -77,7 +82,7 @@ function AddStudentProfile() {
                             <Form.Group>
                                 <Form.Label>Enrollment Number</Form.Label>
                                 <Form.Control
-                                    type="text"
+                                    type="number"
                                     name="studpnr"
                                     value={formData.studpnr}
                                     onChange={handleChange}
@@ -88,7 +93,7 @@ function AddStudentProfile() {
                             <Form.Group>
                                 <Form.Label>Phone</Form.Label>
                                 <Form.Control
-                                    type="text"
+                                    type="number"
                                     name="studphone"
                                     value={formData.studphone}
                                     onChange={handleChange}
@@ -135,6 +140,16 @@ function AddStudentProfile() {
                             </Form.Group>
 
                             <Form.Group>
+                                <Form.Label>Blood Group: </Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    name="studbloodgrp"
+                                    value={formData.studblodgrp}
+                                    onChange={handleChange}
+                                />
+                            </Form.Group>
+
+                            <Form.Group>
                                 <Form.Label>Remark</Form.Label>
                                 <Form.Control
                                     as="textarea"
@@ -158,8 +173,8 @@ function AddStudentProfile() {
                                     <Webcam
                                         ref={webcamRef}
                                         screenshotFormat="image/jpeg"
-                                        width={300}
-                                        height={200}
+                                        width={640}
+                                        height={480}
                                     />
                                     <Button
                                         variant="success"
