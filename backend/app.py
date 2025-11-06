@@ -121,20 +121,26 @@ def add_student():
 
     return jsonify({"message": "✅ Student registered with face successfully"})
 
+
 @app.route("/get_student", methods=["GET"])
 def get_students():
     students = Student.query.all()
+
+    if not students:
+        return jsonify({"message": "❌ No students registered yet"}), 404
+
     return jsonify([{"id": student.studid,
                      "name": student.studname,
-                     "pnr" : student.studpnr,
-                     "phone" : student.studphone,
-                     "course" : student.studcourse,
-                     "email" : student.studemail,
-                     "bloodgrp" : student.studbloodgrp,
-                     "remark" : student.studremark,
-                     "hostelroom" : student.studhostelroom,
-                     "face" : student.studface
+                     "pnr": student.studpnr,
+                     "phone": student.studphone,
+                     "course": student.studcourse,
+                     "email": student.studemail,
+                     "bloodgrp": student.studbloodgrp,
+                     "remark": student.studremark,
+                     "hostelroom": student.studhostelroom,
+                     "face": student.studface
                      } for student in students])
+
 
 @app.route("/recognize_face", methods=["POST"])
 def recognize_face():
@@ -173,9 +179,6 @@ def recognize_face():
                 return jsonify({"recognized": False, "message": "❌ Unknown student"}), 404
 
     return jsonify({"recognized": False, "message": "❌ Face not recognized"}), 400
-
-
-
 
 
 if __name__ == "__main__":
