@@ -9,7 +9,8 @@ const PATHS = {
     MEALRATING : "/meal_rating",
     MEALAVERAGE : "/meal_average/:id",
     ADDSTUDENTPROFILE : "/add_student_profile",
-    FACEDETECTION : "/face_detection"
+    FACEDETECTION : "/face_detection",
+    TIMETABLE : "/meal_timetable"
   }
 
   export default PATHS;

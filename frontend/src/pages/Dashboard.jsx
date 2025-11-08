@@ -31,7 +31,7 @@ function Dashboard() {
         {/* Main body */}
         <Container fluid className="p-4">
           <Col>
-            <p>Recent Data</p>
+            <h3>Recent Data</h3>
               <Row>
                 {/* Card 1 */}
                 <Col md={4}>

@@ -5,7 +5,8 @@ import numpy as np
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from PIL import Image
-from models import db, Student
+
+from models import db, Student, Timetable
 from flask_migrate import Migrate
 
 app = Flask(__name__)
@@ -179,6 +180,20 @@ def recognize_face():
                 return jsonify({"recognized": False, "message": "❌ Unknown student"}), 404
 
     return jsonify({"recognized": False, "message": "❌ Face not recognized"}), 400
+
+@app.route("/get_timetable", methods=["GET"])
+def get_timetable():
+    Timetables = Timetable.query.all()
+
+    data = []
+    for item in Timetables:
+        data.append({
+            "ttid": item.ttid,
+            "day": item.day,
+            "mealtype": item.mealtype,
+            "food": item.food.foodname if item.food else "N/A"
+        })
+    return jsonify(data)
 
 
 if __name__ == "__main__":

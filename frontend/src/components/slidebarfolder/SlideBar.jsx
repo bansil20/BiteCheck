@@ -30,7 +30,7 @@ function SlideBar() {
     { title: "Student Details", icon: <FaUserGraduate />, path: PATHS.STUDENTDETAILS },
     { title: "Meal Feedback", icon: <MdFeedback />, path: PATHS.STUDENTFEEDBACK },
     { title: "Download Report", icon: <FaDownload />, path: "#" },
-    { title: "Meal Time Table", icon: <FaRegClock />, path: "#" },
+    { title: "Meal Time Table", icon: <FaRegClock />, path: PATHS.TIMETABLE },
     { title: "Meal Rating", icon: <FaStar />, path: PATHS.MEALRATING },
   ];
 

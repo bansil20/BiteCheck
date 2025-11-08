@@ -13,6 +13,7 @@ import MealAverage from "./pages/MealAverage";
 import AddStudentProfile from "./pages/AddStudentProfile";
 import Aos from "aos";
 import FaceDetection from "./pages/FaceDetection";
+import TimeTable from "./pages/TimeTable";
 
 function App() {
 
@@ -33,6 +34,8 @@ function App() {
         <Route path={PATHS.MEALRATING} element={<LayoutSlideBar><MealRating/></LayoutSlideBar>} />
         <Route path={PATHS.MEALAVERAGE} element={<LayoutSlideBar><MealAverage /></LayoutSlideBar>} />
         <Route path={PATHS.FACEDETECTION} element={<LayoutSlideBar><FaceDetection /></LayoutSlideBar>} />
+        <Route path={PATHS.TIMETABLE} element={<LayoutSlideBar><TimeTable /></LayoutSlideBar>} />
+
       </Routes>
     </Router>
   );
