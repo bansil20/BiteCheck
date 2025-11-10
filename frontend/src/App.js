@@ -14,6 +14,7 @@ import AddStudentProfile from "./pages/AddStudentProfile";
 import Aos from "aos";
 import FaceDetection from "./pages/FaceDetection";
 import TimeTable from "./pages/TimeTable";
+import MealFeedbackDetails from "./pages/MealFeedbackDetails";
 
 function App() {
 
@@ -35,6 +36,7 @@ function App() {
         <Route path={PATHS.MEALAVERAGE} element={<LayoutSlideBar><MealAverage /></LayoutSlideBar>} />
         <Route path={PATHS.FACEDETECTION} element={<LayoutSlideBar><FaceDetection /></LayoutSlideBar>} />
         <Route path={PATHS.TIMETABLE} element={<LayoutSlideBar><TimeTable /></LayoutSlideBar>} />
+        <Route path={PATHS.MEALFEEDBACKDETAILS} element={<LayoutSlideBar><MealFeedbackDetails /></LayoutSlideBar>} />
 
       </Routes>
     </Router>

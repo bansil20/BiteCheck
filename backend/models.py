@@ -25,7 +25,6 @@ class Student(db.Model):
     studface = db.Column(sqlalchemy.JSON, nullable=True)
 
     attendances = db.relationship('Attendance', backref='student', lazy=True)
-    feedbacks = db.relationship('Feedback', backref='student', lazy=True)
 
 
 class Attendance(db.Model):
@@ -39,6 +38,8 @@ class Attendance(db.Model):
 class food(db.Model):
     foodid = db.Column(db.Integer, primary_key=True, autoincrement=True)
     foodname = db.Column(db.String(50), nullable=False)
+    fooddescription = db.Column(db.String(100), nullable=True)
+    foodimage = db.Column(db.String(100), nullable=True)
 
     timetable_items = db.relationship('Timetable', backref='food', lazy=True)
     feedbacks = db.relationship('Feedback', backref='food', lazy=True)
@@ -47,10 +48,11 @@ class food(db.Model):
 
 class Feedback(db.Model):
     fbid = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    studid = db.Column(db.Integer, db.ForeignKey('student.studid'), nullable=False)
     foodid = db.Column(db.Integer, db.ForeignKey('food.foodid'), nullable=False)
+    studentname = db.Column(db.String(50), nullable=True)
     rating = db.Column(db.Integer, nullable=False)
     comment = db.Column(db.Text, nullable=False)
+    eat_again = db.Column(Enum('Yes', 'No'),nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 

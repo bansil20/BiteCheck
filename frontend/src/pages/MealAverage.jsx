@@ -1,53 +1,56 @@
+import { useState, useEffect } from "react";
 import { Card, Col, Container, Nav, Navbar, Row } from "react-bootstrap";
 import { FaStar, FaUser } from "react-icons/fa";
-import { useLocation, useParams } from "react-router-dom";
-
-
-
-const MEAL_HISTORY = {
-  1: [
-    { id: "1a", date: "2025-08-01", rating: 4.5, image: "https://via.placeholder.com/120x100" },
-    { id: "1b", date: "2025-08-08", rating: 4.2, image: "https://via.placeholder.com/120x100" },
-    { id: "1c", date: "2025-08-15", rating: 4.7, image: "https://via.placeholder.com/120x100" },
-  ],
-  2: [
-    { id: "2a", date: "2025-08-03", rating: 3.8, image: "https://via.placeholder.com/120x100" },
-    { id: "2b", date: "2025-08-10", rating: 4.1, image: "https://via.placeholder.com/120x100" },
-  ],
-  3: [
-    { id: "3a", date: "2025-08-02", rating: 4.9, image: "https://via.placeholder.com/120x100" },
-    { id: "3b", date: "2025-08-09", rating: 4.7, image: "https://via.placeholder.com/120x100" },
-    { id: "3c", date: "2025-08-13", rating: 4.8, image: "https://via.placeholder.com/120x100" },
-  ],
-};
+import { useLocation, useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
 
 function MealAverage() {
-  const { id } = useParams();
+  const { id } = useParams(); // food id
   const { state } = useLocation();
-
   const mealFromState = state?.food || null;
-  const history = MEAL_HISTORY[id] || [];
+  const navigate = useNavigate();
 
-  const avg =
-    history.length > 0
-      ? (history.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / history.length).toFixed(1)
-      : null;
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const mealName = mealFromState?.name || `Meal #${id}`;
+  useEffect(() => {
+    axios
+      .get(`http://127.0.0.1:5000/get_feedback/${id}`)
+      .then((res) => {
+        setFeedbacks(res.data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [id]);
+
+  const mealName = mealFromState?.foodname || `Meal #${id}`;
   const mealHeroImage =
-    mealFromState?.image || history[0]?.image || "https://via.placeholder.com/600x240";
-
-  const sortedHistory = [...history].sort((a, b) => (a.date < b.date ? 1 : -1));
+    `http://127.0.0.1:5000${mealFromState?.foodimage}` ||
+    "https://via.placeholder.com/600x240";
 
   const renderStars = (rating) => {
     const stars = [];
     for (let i = 1; i <= 5; i++) {
       stars.push(
-        <FaStar key={i} color={i <= Math.round(rating) ? "#FFD700" : "#ddd"} className="me-1" />
+        <FaStar
+          key={i}
+          color={i <= Math.round(rating) ? "#FFD700" : "#ddd"}
+          className="me-1"
+        />
       );
     }
     return stars;
   };
+
+  // ✅ Calculate overall average rating
+  const overallAvg =
+    feedbacks && feedbacks.length > 0
+      ? feedbacks.reduce((sum, e) => sum + (e.avg_rating || 0), 0) /
+        feedbacks.length
+      : 0;
 
   return (
     <div className="dashboard-wrapper d-flex flex-column min-vh-100">
@@ -61,7 +64,7 @@ function MealAverage() {
         </Nav>
       </Navbar>
 
-      {/* Hero section with background */}
+      {/* ✅ Hero Section with Overall Average */}
       <div
         style={{
           backgroundImage: `url(${mealHeroImage})`,
@@ -79,61 +82,73 @@ function MealAverage() {
             padding: "30px",
             maxWidth: "700px",
             margin: "auto",
+            textAlign: "center",
           }}
         >
-          <h2 className="fw-bold">{mealName}</h2>
-          {avg ? (
-            <div className="d-flex align-items-center mt-2">
-              {renderStars(avg)}
-              <span className="ms-3 fs-5">Avg: {avg} / 5</span>
-            </div>
-          ) : (
-            <span>No ratings yet</span>
-          )}
+          <h2 className="fw-bold mb-2">{mealName}</h2>
+
+          {/* ✅ Overall Average Rating */}
+          <div className="d-flex justify-content-center align-items-center mt-2">
+            {renderStars(overallAvg)}
+            <span className="ms-2 fw-semibold">
+              {overallAvg > 0
+                ? `${overallAvg.toFixed(1)}/5 Overall`
+                : "No ratings yet"}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Main content */}
+      {/* ✅ Main Content */}
       <Container className="my-5">
-        <h4 className="mb-4 fw-semibold">📌 Past Meal Feedback</h4>
+        <h4 className="mb-4 fw-semibold">
+          📅 Past Meal Feedback (Grouped by Date)
+        </h4>
         <Row>
-          {sortedHistory.length === 0 ? (
+          {loading ? (
+            <Col>
+              <p>Loading...</p>
+            </Col>
+          ) : feedbacks.length === 0 ? (
             <Col>
               <Card className="shadow-sm border-0 text-center p-4">
-                <Card.Body>No past feedback found for this meal.</Card.Body>
+                <Card.Body>No feedback available for this meal.</Card.Body>
               </Card>
             </Col>
           ) : (
-            sortedHistory.map((entry) => (
-              <Col md={6} lg={4} key={entry.id} className="mb-4">
+            feedbacks.map((entry, idx) => (
+              <Col md={6} lg={4} key={idx} className="mb-4">
                 <Card
                   className="shadow border-0 h-100"
                   style={{
-                    borderRadius: "16px",
-                    transition: "transform 0.2s ease",
+                    cursor: "pointer",
+                    transition: "0.3s",
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.03)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.transform = "scale(1.03)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.transform = "scale(1)")
+                  }
+                  onClick={() =>
+                    navigate(`/meal_feedback_details/${id}/${entry.date}`, {
+                      state: { food: mealFromState },
+                    })
+                  }
                 >
                   <Card.Img
                     variant="top"
-                    src={entry.image || mealHeroImage}
-                    style={{
-                      height: "180px",
-                      objectFit: "cover",
-                      borderTopLeftRadius: "16px",
-                      borderTopRightRadius: "16px",
-                    }}
+                    src={mealHeroImage}
+                    style={{ height: "180px", objectFit: "cover" }}
                   />
                   <Card.Body>
-                    <Card.Title className="fw-bold">{mealName}</Card.Title>
+                    <Card.Title className="fw-bold">{entry.date}</Card.Title>
                     <div className="d-flex align-items-center mt-2">
-                      {renderStars(entry.rating)}
-                      <span className="ms-2 fw-semibold">{entry.rating}/5</span>
+                      {renderStars(entry.avg_rating)}
+                      <span className="ms-2 fw-semibold">
+                        {entry.avg_rating}/5 (Avg from {entry.count} feedbacks)
+                      </span>
                     </div>
-                    <Card.Text className="text-muted mt-2">
-                      🍴 Served on: {entry.date}
-                    </Card.Text>
                   </Card.Body>
                 </Card>
               </Col>
@@ -144,4 +159,5 @@ function MealAverage() {
     </div>
   );
 }
+
 export default MealAverage;

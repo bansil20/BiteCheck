@@ -1,64 +1,95 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, Col, Container, Nav, Navbar, Row } from "react-bootstrap";
-import { FaUser } from "react-icons/fa";
+import { FaUser, FaStar } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 function MealRating() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [foodItem, setFoodItem] = useState([]);
+  const [ratings, setRatings] = useState({}); // store avg rating per foodid
 
-  // Temporary static data
-  const foods = [
-    {
-      id: 1,
-      name: "Paneer Butter Masala",
-      description: "Rich and creamy curry with soft paneer cubes.",
-      image: "https://plus.unsplash.com/premium_photo-1749669869018-8a33825100f0?q=80&w=688&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      rating: 4.5,
-    },
-    {
-      id: 2,
-      name: "Veg Biryani",
-      description: "Fragrant rice with mixed vegetables and spices.",
-      image: "https://via.placeholder.com/300x200",
-      rating: 4.0,
-    },
-    {
-      id: 3,
-      name: "Masala Dosa",
-      description: "Crispy dosa stuffed with spiced potato filling.",
-      image: "https://via.placeholder.com/300x200",
-      rating: 4.8,
-    },
-  ];
+  const navigate = useNavigate();
 
-  // Filter based on search
-  const filteredFoods = foods.filter((food) =>
-    food.name.toLowerCase().includes(searchTerm.toLowerCase())
+  useEffect(() => {
+    axios
+      .get(`http://127.0.0.1:5000/get_foods`)
+      .then((res) => {
+        setFoodItem(res.data);
+        // For each food, fetch its feedback to calculate avg
+        res.data.forEach((food) => fetchAverageRating(food.foodid));
+      })
+      .catch((err) => {
+        console.error("Error fetching foods:", err);
+      });
+  }, []);
+
+  // ✅ Fetch average rating for each food
+  const fetchAverageRating = async (foodid) => {
+    try {
+      const res = await axios.get(`http://127.0.0.1:5000/get_feedback/${foodid}`);
+      const feedbacks = res.data;
+
+      if (feedbacks.length === 0) {
+        setRatings((prev) => ({ ...prev, [foodid]: 0 }));
+        return;
+      }
+
+      // calculate overall average (consider avg_rating if grouped by date, else rating)
+      const avg =
+        feedbacks.reduce(
+          (sum, f) => sum + (f.avg_rating ? Number(f.avg_rating) : Number(f.rating)),
+          0
+        ) / feedbacks.length;
+
+      setRatings((prev) => ({ ...prev, [foodid]: avg }));
+    } catch (err) {
+      console.error(`Error fetching feedback for food ${foodid}:`, err);
+    }
+  };
+
+  // ✅ Filter search
+  const filteredFoods = foodItem.filter((food) =>
+    food.foodname.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // ✅ Render stars for average rating
+  const renderStars = (rating) => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(
+        <FaStar
+          key={i}
+          color={i <= Math.round(rating) ? "#FFD700" : "#ddd"}
+          className="me-1"
+        />
+      );
+    }
+    return stars;
+  };
 
-    const navigate = useNavigate();
   return (
     <div className="dashboard-wrapper d-flex">
-      {/* Upper nav*/}
+      {/* Main Content */}
       <div className="main-content flex-grow-1">
-        {/* Top Navbar */}
+        {/* Navbar */}
         <Navbar bg="light" expand="lg" className="px-4 shadow-sm">
-                    <Navbar.Brand className="pb-3 mb-3 mt-3 border-bottom text-start ps-3"><h4 className="fw-bold mb-0"> Welcome Admin</h4></Navbar.Brand>
+          <Navbar.Brand className="pb-3 mb-3 mt-3 border-bottom text-start ps-3">
+            <h4 className="fw-bold mb-0">Welcome Admin</h4>
+          </Navbar.Brand>
 
           <Nav className="ms-auto">
             <Nav.Link href="#">
-              <FaUser />
-              cz
+              <FaUser /> cz
             </Nav.Link>
           </Nav>
         </Navbar>
 
-        {/* Main body */}
+        {/* Page Body */}
         <Container fluid className="p-4">
           <h3>Meal Rating</h3>
           <div className="container mt-4">
-            {/* Search Bar */}
+            {/* Search */}
             <div className="mb-4">
               <input
                 type="text"
@@ -72,19 +103,27 @@ function MealRating() {
 
             {/* Food Cards */}
             <Row>
-              {foods.map((food) => (
-                <Col key={food.id} md={4} sm={6} className="mb-4">
+              {filteredFoods.map((food, idx) => (
+                <Col key={idx} md={4} sm={6} className="mb-4">
                   <Card
-            className="shadow-sm h-100"
-            style={{ cursor: "pointer" }}
-            onClick={() => navigate(`/meal_average/${food.id}`)} // Navigate on click
-          >
+                    className="shadow-sm h-100"
+                    style={{ cursor: "pointer", transition: "0.3s" }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.transform = "scale(1.02)")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.transform = "scale(1)")
+                    }
+                    onClick={() =>
+                      navigate(`/meal_average/${food.foodid}`, { state: { food } })
+                    }
+                  >
                     <Card.Body>
                       <div className="d-flex align-items-center">
-                        {/* Image on left */}
+                        {/* Image */}
                         <img
-                          src={food.image}
-                          alt={food.name}
+                          src={`http://127.0.0.1:5000${food.foodimage}`}
+                          alt={food.foodname}
                           style={{
                             height: "120px",
                             width: "120px",
@@ -94,13 +133,24 @@ function MealRating() {
                           }}
                         />
 
-                        {/* Details on right */}
+                        {/* Details */}
                         <div>
                           <Card.Title className="fw-bold">
-                            {food.name}
+                            {food.foodname}
                           </Card.Title>
-                          <p className="mb-1">{food.description}</p>
-                          <p className="fw-bold">⭐ {food.rating} / 5</p>
+                          <p className="mb-1">{food.fooddescription}</p>
+
+                          {/* ✅ Show overall average */}
+                          {ratings[food.foodid] > 0 ? (
+                            <div className="d-flex align-items-center">
+                              {renderStars(ratings[food.foodid])}
+                              <span className="ms-2 fw-semibold">
+                                {ratings[food.foodid].toFixed(1)} / 5
+                              </span>
+                            </div>
+                          ) : (
+                            <p className="text-muted mb-0">No ratings yet</p>
+                          )}
                         </div>
                       </div>
                     </Card.Body>

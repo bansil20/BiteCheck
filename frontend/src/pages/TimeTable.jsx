@@ -1,7 +1,7 @@
 import {Container, Navbar, Nav, Table} from "react-bootstrap";
 import {FaUser} from "react-icons/fa";
 import "./Dashboard.css";
-import React, { useEffect, useState } from "react";
+import React, {useEffect, useState} from "react";
 import axios from "axios";
 
 
@@ -52,86 +52,87 @@ function TimeTable() {
                 <Container fluid className="p-4">
 
 
- <h3 className="fw-bold mb-0 ">
-          Weekly Food Timetable
-        </h3>
-  <div className="main-content flex-grow-1">
+                    <h3 className="fw-bold mb-0 ">
+                        Weekly Food Timetable
+                    </h3>
+                    <div className="main-content flex-grow-1">
 
-   <br/>
-      <br/>
-    <Container className="p-4">
-      <div className="card shadow-lg border-0 rounded-4 bg-light">
-        <div
-          className="card-header text-white text-center rounded-top"
-          style={{
-            background: "linear-gradient(90deg, #43a047, #00bfa5, #8bc34a)",
-          }}
-        >
-          <h5 className="mb-0 fw-semibold">Healthy Meal Schedule Overview</h5>
-        </div>
+                        <br/>
+                        <br/>
+                        <Container className="p-4">
+                            <div className="card shadow-lg border-0 rounded-4 bg-light">
+                                <div
+                                    className="card-header text-white text-center rounded-top"
+                                    style={{
+                                        background: "linear-gradient(90deg, #43a047, #00bfa5, #8bc34a)",
+                                    }}
+                                >
+                                    <h5 className="mb-0 fw-semibold">Healthy Meal Schedule Overview</h5>
+                                </div>
 
-        <div className="card-body p-0">
-          <Table
-            bordered
-            hover
-            responsive
-            className="align-middle mb-0 text-center"
-            style={{ fontSize: "1.05rem" }}
-          >
-            <thead
-              style={{
-                background: "linear-gradient(90deg, #ffb300, #ffca28)",
-                color: "#004d40",
-                fontWeight: "bold",
-              }}
-            >
-              <tr style={{ height: "65px" }}>
-                <th>📅 Day</th>
-                <th>🥣 Breakfast</th>
-                <th>🍛 Lunch</th>
-                <th>🍲 Dinner</th>
-              </tr>
-            </thead>
+                                <div className="card-body p-0">
+                                    <Table
+                                        bordered
+                                        hover
+                                        responsive
+                                        className="align-middle mb-0 text-center"
+                                        style={{fontSize: "1.05rem"}}
+                                    >
+                                        <thead
+                                            style={{
+                                                background: "linear-gradient(90deg, #ffb300, #ffca28)",
+                                                color: "#004d40",
+                                                fontWeight: "bold",
+                                            }}
+                                        >
+                                        <tr style={{height: "65px"}}>
+                                            <th>📅 Day</th>
+                                            <th>🥣 Breakfast</th>
+                                            <th>🍛 Lunch</th>
+                                            <th>🍲 Dinner</th>
+                                        </tr>
+                                        </thead>
 
-            <tbody>
-              {Object.keys(grouped).map((day, idx) => (
-                <tr key={idx} style={{ height: "70px" }}>
-                  <td className="fw-bold text-success bg-white">{day}</td>
-                  <td
-                    className="fw-semibold"
-                    style={{
-                      backgroundColor: "#e8f5e9", // light green
-                      color: "#2e7d32",
-                    }}
-                  >
-                    {grouped[day].Breakfast || "-"}
-                  </td>
-                  <td
-                    className="fw-semibold"
-                    style={{
-                      backgroundColor: "#fffde7", // soft lemon
-                      color: "#f9a825",
-                    }}
-                  >
-                    {grouped[day].Lunch || "-"}
-                  </td>
-                  <td
-                    className="fw-semibold"
-                    style={{
-                      backgroundColor: "#e0f7fa", // aqua blue
-                      color: "#00796b",
-                    }}
-                  >
-                    {grouped[day].Dinner || "-"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        </div>
-      </div>
-    </Container>
-  </div>
+                                        <tbody>
+                                        {Object.keys(grouped).map((day, idx) => (
+                                            <tr key={idx} style={{height: "70px"}}>
+                                                <td className="fw-bold text-success bg-white">{day}</td>
+                                                <td
+                                                    className="fw-semibold"
+                                                    style={{
+                                                        backgroundColor: "#e8f5e9", // light green
+                                                        color: "#2e7d32",
+                                                    }}
+                                                >
+                                                    {grouped[day].Breakfast || "-"}
+                                                </td>
+                                                <td
+                                                    className="fw-semibold"
+                                                    style={{
+                                                        backgroundColor: "#fffde7", // soft lemon
+                                                        color: "#f9a825",
+                                                    }}
+                                                >
+                                                    {grouped[day].Lunch || "-"}
+                                                </td>
+                                                <td
+                                                    className="fw-semibold"
+                                                    style={{
+                                                        backgroundColor: "#e0f7fa", // aqua blue
+                                                        color: "#00796b",
+                                                    }}
+                                                >
+                                                    {grouped[day].Dinner || "-"}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        </tbody>
+                                    </Table>
+                                </div>
+
+                            </div>
+                        </Container>
+                    </div>
 
 
                 </Container>

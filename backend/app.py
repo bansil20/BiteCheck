@@ -6,8 +6,9 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from PIL import Image
 
-from models import db, Student, Timetable
+from models import db, Student, Timetable, Attendance, food, Feedback
 from flask_migrate import Migrate
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 CORS(app)
@@ -165,21 +166,68 @@ def recognize_face():
     recognizer = cv2.face.LBPHFaceRecognizer_create()
     recognizer.read(TRAINER_PATH)
 
+    # Function to detect current meal/day
+    def get_current_meal_and_day():
+        now = datetime.now()
+        current_time = now.time()
+        current_day = now.strftime("%A")
+
+        if datetime.strptime("06:00", "%H:%M").time() <= current_time < datetime.strptime("10:30", "%H:%M").time():
+            meal = "Breakfast"
+        elif datetime.strptime("11:00", "%H:%M").time() <= current_time < datetime.strptime("15:30", "%H:%M").time():
+            meal = "Lunch"
+        elif datetime.strptime("18:30", "%H:%M").time() <= current_time < datetime.strptime("23:59", "%H:%M").time():
+            meal = "Dinner"
+        else:
+            meal = None
+
+        return current_day, meal
+
     # Recognize face
     for (x, y, w, h) in faces:
         face_img = gray[y:y + h, x:x + w]
         label, confidence = recognizer.predict(face_img)
 
-        # Lower confidence value = more accurate
         if confidence < 70:
-            student = Student.query.get(label)
+            student = db.session.get(Student, label)
             if student:
-                print(f"✅ Recognized: {student.studname} (Confidence: {confidence:.2f})")
-                return jsonify({"recognized": True, "name": student.studname})
+                current_day, current_meal = get_current_meal_and_day()
+
+                if not current_meal:
+                    return jsonify({"recognized": True, "name": student.studname,
+                                    "message": "✅ Face recognized but not meal time"}), 200
+
+                # Find the matching food from Timetable
+                timetable_entry = Timetable.query.filter_by(day=current_day, mealtype=current_meal).first()
+
+                if not timetable_entry:
+                    return jsonify({"recognized": True, "name": student.studname,
+                                    "message": f"✅ Recognized but no {current_meal} found in timetable"}), 200
+
+                # Create attendance entry
+                new_attendance = Attendance(
+                    studid=student.studid,
+                    status="Present",
+                    food_id=timetable_entry.foodid
+                )
+                db.session.add(new_attendance)
+                db.session.commit()
+
+                print(f"✅ Attendance marked for {student.studname} ({current_day}, {current_meal})")
+
+                return jsonify({
+                    "recognized": True,
+                    "name": student.studname,
+                    "day": current_day,
+                    "meal": current_meal,
+                    "food": timetable_entry.food.foodname,
+                    "message": "✅ Attendance marked successfully"
+                }), 200
             else:
                 return jsonify({"recognized": False, "message": "❌ Unknown student"}), 404
 
     return jsonify({"recognized": False, "message": "❌ Face not recognized"}), 400
+
 
 @app.route("/get_timetable", methods=["GET"])
 def get_timetable():
@@ -194,6 +242,180 @@ def get_timetable():
             "food": item.food.foodname if item.food else "N/A"
         })
     return jsonify(data)
+
+
+@app.route("/get_foods", methods=["GET"])
+def get_foods():
+    foods = food.query.all()
+    result = []
+    for f in foods:
+        result.append({
+            "foodid": f.foodid,
+            "foodname": f.foodname,
+            "fooddescription": f.fooddescription or "Delicious food",
+            "foodimage": f"/{f.foodimage}" if f.foodimage else "",
+        })
+    return jsonify(result)
+
+
+
+@app.route("/get_attendance/<int:studid>", methods=["GET"])
+def get_attendance_in_stdprofile(studid):
+    attendance_records = Attendance.query.filter_by(studid=studid).order_by(Attendance.timestamp.desc()).all()
+
+    result = []
+    for att in attendance_records:
+        food_item = food.query.get(att.food_id)
+        # get timetable info for that food to know meal & day
+        timetable_entry = Timetable.query.filter_by(foodid=att.food_id).first()
+
+        result.append({
+            "timestamp": att.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "day": timetable_entry.day if timetable_entry else "N/A",
+            "meal": timetable_entry.mealtype if timetable_entry else "N/A",
+            "food": food_item.foodname if food_item else "N/A",
+            "status": att.status,
+        })
+
+    return jsonify(result)
+
+
+
+@app.route("/get_current_food", methods=["GET"])
+def get_current_food():
+    now = datetime.now()
+    current_time = now.time()
+    current_day = now.strftime("%A")
+
+    if datetime.strptime("06:00", "%H:%M").time() <= current_time < datetime.strptime("10:30", "%H:%M").time():
+        meal = "Breakfast"
+    elif datetime.strptime("11:00", "%H:%M").time() <= current_time < datetime.strptime("15:30", "%H:%M").time():
+        meal = "Lunch"
+    elif datetime.strptime("18:30", "%H:%M").time() <= current_time < datetime.strptime("23:59", "%H:%M").time():
+        meal = "Dinner"
+    else:
+        return jsonify({"message": "No meal right now"}), 404
+
+    timetable_entry = Timetable.query.filter_by(day=current_day, mealtype=meal).first()
+    if not timetable_entry:
+        return jsonify({"message": f"No {meal} scheduled for today"}), 404
+
+    food_item = timetable_entry.food
+    if not food_item:
+        return jsonify({"message": "Food details not found"}), 404
+
+    return jsonify({
+        "foodid": food_item.foodid,
+        "foodname": food_item.foodname,
+        "fooddescription": food_item.fooddescription or "Delicious food",
+        "foodimage": f"/{food_item.foodimage}" if food_item.foodimage else ""
+    })
+
+
+from flask import send_from_directory
+import os
+
+@app.route("/food_images/<path:filename>")
+def serve_food_image(filename):
+    return send_from_directory(os.path.join(app.root_path, "static/food_images"), filename)
+
+
+
+
+EMOJI_TO_RATING = {
+    "😡": 1,
+    "😒": 2,
+    "😑": 3,
+    "😊": 4,
+    "😍": 5
+}
+
+@app.route("/submit_feedback", methods=["POST"])
+def submit_feedback():
+    data = request.get_json()
+    foodid = data.get("foodid")
+    emoji = data.get("emoji")
+    comment = data.get("comment")
+    would_eat_again = data.get("would_eat_again")
+    studentname = data.get("studentname", "")
+
+    # Validate required fields
+    if not all([foodid, emoji, comment, would_eat_again is not None]):
+        return jsonify({"message": "Missing required fields"}), 400
+
+    # Convert emoji to rating
+    rating = EMOJI_TO_RATING.get(emoji, 3)
+
+    # Create Feedback object
+    new_feedback = Feedback(
+        foodid=foodid,
+        studentname=studentname,
+        rating=rating,
+        comment=comment,
+        eat_again="Yes" if would_eat_again else "No"
+    )
+    db.session.add(new_feedback)
+    db.session.commit()  # ✅ This writes it to the DB
+
+    return jsonify({"message": "Feedback submitted successfully"}), 200
+
+
+
+
+@app.route("/get_feedback/<int:foodid>", methods=["GET"])
+def get_feedback(foodid):
+    # Fetch feedbacks for this food
+    feedbacks = Feedback.query.filter_by(foodid=foodid).order_by(Feedback.created_at.asc()).all()
+
+    if not feedbacks:
+        return jsonify([])
+
+    grouped = {}
+    for fb in feedbacks:
+        date_str = fb.created_at.strftime("%Y-%m-%d")
+        if date_str not in grouped:
+            grouped[date_str] = {"total": 0, "count": 0}
+        grouped[date_str]["total"] += fb.rating
+        grouped[date_str]["count"] += 1
+
+    result = []
+    for date_str, data in grouped.items():
+        avg = round(data["total"] / data["count"], 1)
+        result.append({
+            "date": date_str,
+            "avg_rating": avg,
+            "count": data["count"]
+        })
+
+    # Sort descending (latest first)
+    result.sort(key=lambda x: x["date"], reverse=True)
+    return jsonify(result)
+
+
+
+@app.route("/get_feedback_by_date/<int:foodid>/<string:date>", methods=["GET"])
+def get_feedback_by_date(foodid, date):
+    start_date = datetime.strptime(date, "%Y-%m-%d")
+    end_date = start_date + timedelta(days=1)
+
+    feedbacks = Feedback.query.filter(
+        Feedback.foodid == foodid,
+        Feedback.created_at >= start_date,
+        Feedback.created_at < end_date
+    ).all()
+
+    result = []
+    for fb in feedbacks:
+        result.append({
+            "id": fb.fbid,
+            "rating": fb.rating,
+            "comment": fb.comment,
+            "eat_again": True if fb.eat_again.lower() == "yes" else False,
+            "studentname": fb.studentname,  # if available
+        })
+
+    return jsonify(result)
+
 
 
 if __name__ == "__main__":
