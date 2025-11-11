@@ -15,6 +15,8 @@ import Aos from "aos";
 import FaceDetection from "./pages/FaceDetection";
 import TimeTable from "./pages/TimeTable";
 import MealFeedbackDetails from "./pages/MealFeedbackDetails";
+import Faq from "./pages/Faq";
+import About from "./pages/About";
 
 function App() {
 
@@ -37,6 +39,9 @@ function App() {
         <Route path={PATHS.FACEDETECTION} element={<LayoutSlideBar><FaceDetection /></LayoutSlideBar>} />
         <Route path={PATHS.TIMETABLE} element={<LayoutSlideBar><TimeTable /></LayoutSlideBar>} />
         <Route path={PATHS.MEALFEEDBACKDETAILS} element={<LayoutSlideBar><MealFeedbackDetails /></LayoutSlideBar>} />
+        <Route path={PATHS.FAQ} element={<LayoutSlideBar><Faq /></LayoutSlideBar>} />
+        <Route path={PATHS.ABOUT} element={<LayoutSlideBar><About /></LayoutSlideBar>} />
+
 
       </Routes>
     </Router>

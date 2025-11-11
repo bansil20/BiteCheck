@@ -1,7 +1,7 @@
 import { useParams, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Card, Container, Row, Col, Navbar, Nav } from "react-bootstrap";
-import { FaStar, FaUser } from "react-icons/fa";
+import {Card, Container, Row, Col, Navbar, Nav, Button} from "react-bootstrap";
+import {FaDownload, FaStar, FaUser} from "react-icons/fa";
 import axios from "axios";
 
 function MealFeedbackDetails() {
@@ -44,6 +44,27 @@ function MealFeedbackDetails() {
     `http://127.0.0.1:5000${mealFromState?.foodimage}` ||
     "https://via.placeholder.com/600x240";
 
+   const handleDownloadFeedbackPDF = async () => {
+    try {
+      const response = await axios.get(
+        `http://127.0.0.1:5000/download_feedback_pdf/${date}/${mealName}`,
+        { responseType: "blob" }
+      );
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `Feedback_${mealName}_${date}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      console.error("❌ Error downloading PDF:", error);
+      alert("Failed to download feedback PDF. Check backend logs.");
+    }
+  };
+
+
   return (
     <div className="dashboard-wrapper d-flex flex-column min-vh-100">
       <Navbar bg="white" expand="lg" className="px-4 shadow-sm sticky-top">
@@ -81,6 +102,14 @@ function MealFeedbackDetails() {
 
       <Container className="my-5">
         <h4 className="mb-4 fw-semibold">Student Feedbacks</h4>
+          {/* ✅ Download PDF Button */}
+          <Button
+            variant="primary"
+            className="d-flex align-items-center"
+            onClick={handleDownloadFeedbackPDF}
+          >
+            <FaDownload className="me-2" /> Download Feedback PDF
+          </Button>
         <Row>
   {loading ? (
     <p>Loading...</p>

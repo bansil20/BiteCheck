@@ -418,6 +418,157 @@ def get_feedback_by_date(foodid, date):
 
 
 
+from flask import send_file
+import io
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+
+@app.route('/download_attendance_pdf/<int:student_id>')
+def download_attendance_pdf(student_id):
+    student = Student.query.get(student_id)
+    if not student:
+        return jsonify({"error": "Student not found"}), 404
+
+    attendance_records = get_attendance_data(student_id)
+    if not attendance_records:
+        return jsonify({"error": "No attendance records found"}), 404
+
+    pdf_buffer = io.BytesIO()
+    p = canvas.Canvas(pdf_buffer, pagesize=A4)
+    p.setFont("Helvetica", 12)
+    p.drawString(50, 800, f"Attendance Report for {student.studname} ({student.studpnr})")
+
+    y = 770
+    for record in attendance_records:
+        line = f"{record['timestamp']} | {record['day']} - {record['mealtype']} | {record['food']} | {record['status']}"
+        p.drawString(50, y, line)
+        y -= 20
+        if y < 50:
+            p.showPage()
+            y = 800
+    p.save()
+    pdf_buffer.seek(0)
+    return send_file(
+        pdf_buffer,
+        as_attachment=True,
+        download_name=f"{student.studname}_attendance.pdf",
+        mimetype="application/pdf"
+    )
+
+@app.route("/get_student/<int:student_id>", methods=["GET"])
+def get_student_by_id(student_id):
+    student = Student.query.get(student_id)
+    if not student:
+        return jsonify({"error": "❌ Student not found"}), 404
+
+    return jsonify({
+        "id": student.studid,
+        "name": student.studname,
+        "pnr": student.studpnr,
+        "phone": student.studphone,
+        "course": student.studcourse,
+        "email": student.studemail,
+        "bloodgrp": student.studbloodgrp,
+        "remark": student.studremark,
+        "hostelroom": student.studhostelroom,
+        "face": student.studface
+    })
+
+
+def get_attendance_data(student_id):
+    from models import Attendance, food, Timetable
+
+    records = (
+        db.session.query(
+            Attendance.timestamp,
+            Attendance.status,
+            food.foodname.label("food"),
+            Timetable.mealtype.label("mealtype"),
+            Timetable.day.label("day")
+        )
+        .join(food, Attendance.food_id == food.foodid)
+        .join(Timetable, Timetable.foodid == food.foodid)
+        .filter(Attendance.studid == student_id)
+        .order_by(Attendance.timestamp.desc())
+        .all()
+    )
+
+    return [
+        {
+            "timestamp": r.timestamp.strftime("%Y-%m-%d %H:%M"),
+            "status": r.status,
+            "food": r.food,
+            "mealtype": r.mealtype,
+            "day": r.day,
+        }
+        for r in records
+    ]
+
+
+
+@app.route("/download_feedback_pdf/<date>/<foodname>", methods=["GET"])
+def download_feedback_pdf(date, foodname):
+    # Import models here if needed
+    from io import BytesIO
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+
+    # Step 1: Find food by name
+    food_obj = food.query.filter_by(foodname=foodname).first()
+    if not food_obj:
+        return jsonify({"message": f"❌ Food '{foodname}' not found"}), 404
+
+    # Step 2: Filter feedbacks related to this food (and optionally by date)
+    feedbacks = Feedback.query.filter(Feedback.foodid == food_obj.foodid).all()
+
+    if not feedbacks:
+        return jsonify({"message": f"❌ No feedback found for {foodname} on {date}"}), 404
+
+    # Step 3: Create PDF
+    buffer = BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+
+    # Title
+    pdf.setFont("Helvetica-Bold", 18)
+    pdf.drawString(180, height - 50, " Meal Feedback Report")
+
+    pdf.setFont("Helvetica", 12)
+    pdf.drawString(50, height - 80, f"Date: {date}")
+    pdf.drawString(50, height - 100, f"Food: {foodname}")
+
+    pdf.line(50, height - 110, 550, height - 110)
+
+    y = height - 140
+    count = 1
+
+    for fb in feedbacks:
+        if y < 100:
+            pdf.showPage()
+            pdf.setFont("Helvetica", 12)
+            y = height - 80
+
+        pdf.drawString(50, y, f"{count}. Student: {fb.studentname or 'N/A'}")
+        y -= 20
+        pdf.drawString(70, y, f"Rating: {fb.rating} ")
+        y -= 20
+        pdf.drawString(70, y, f"Comment: {fb.comment}")
+        y -= 20
+        pdf.drawString(70, y, f"Eat Again: {fb.eat_again}")
+        y -= 30
+        count += 1
+
+    pdf.save()
+    buffer.seek(0)
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=f"Feedback_{foodname}_{date}.pdf",
+        mimetype="application/pdf"
+    )
+
+
 if __name__ == "__main__":
     # Load existing model or create new one
     if os.path.exists(TRAINER_PATH):

@@ -6,7 +6,6 @@ import axios from "axios";
 import {Table, Spinner} from "react-bootstrap";
 
 
-
 function StudentProfile() {
 
     const {student} = useLocation().state; // student object passed
@@ -26,6 +25,27 @@ function StudentProfile() {
                 setLoading(false);
             });
     }, [student.id]);
+
+    const handleDownloadPDF = async () => {
+  try {
+    const response = await axios.get(
+      `http://127.0.0.1:5000/download_attendance_pdf/${student.id}`,
+      { responseType: "blob" } // important for binary files
+    );
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `${student.name}_attendance.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } catch (error) {
+    console.error("Error downloading PDF:", error);
+    alert("❌ Failed to download attendance PDF");
+  }
+};
+
 
     return (
         <div className="dashboard-wrapper d-flex">
@@ -65,10 +85,22 @@ function StudentProfile() {
                                         marginRight: "15px"
                                     }}
                                 />
+
                             </div>
                             <div className="col">
                                 <h3 className="fw-bold mb-0">{student.name}</h3>
                             </div>
+                            {/*download attendence of particular student*/}
+                            <div className="card-header d-flex justify-content-between align-items-center fw-bold">
+  <span>Attendance Records</span>
+  <button
+    className="btn btn-sm btn-outline-primary"
+    onClick={() => handleDownloadPDF()}
+  >
+    📄 Download PDF
+  </button>
+</div>
+
                         </div>
 
                         {/* Row 2 - Remarks + Details */}
@@ -84,37 +116,37 @@ function StudentProfile() {
                                     </div>
                                 </div>
                                 {/*attendance table*/}
-<div className="card mt-4">
-  <div className="card-header fw-bold">Attendance Records</div>
-  <div className="card-body">
-    {loading ? (
-      <Spinner animation="border" />
-    ) : attendance.length > 0 ? (
-      <Table striped bordered hover responsive>
-        <thead>
-          <tr>
-            <th>Date & Time</th>
-            <th>Day & Meal</th>
-            <th>Food</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {attendance.map((att, idx) => (
-            <tr key={idx}>
-              <td>{att.timestamp}</td>
-              <td>{`${att.day} - ${att.meal}`}</td>
-              <td>{att.food}</td>
-              <td>{att.status}</td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
-    ) : (
-      <p>No attendance records found.</p>
-    )}
-  </div>
-</div>
+                                <div className="card mt-4">
+                                    <div className="card-header fw-bold">Attendance Records</div>
+                                    <div className="card-body">
+                                        {loading ? (
+                                            <Spinner animation="border"/>
+                                        ) : attendance.length > 0 ? (
+                                            <Table striped bordered hover responsive>
+                                                <thead>
+                                                <tr>
+                                                    <th>Date & Time</th>
+                                                    <th>Day & Meal</th>
+                                                    <th>Food</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                                </thead>
+                                                <tbody>
+                                                {attendance.map((att, idx) => (
+                                                    <tr key={idx}>
+                                                        <td>{att.timestamp}</td>
+                                                        <td>{`${att.day} - ${att.meal}`}</td>
+                                                        <td>{att.food}</td>
+                                                        <td>{att.status}</td>
+                                                    </tr>
+                                                ))}
+                                                </tbody>
+                                            </Table>
+                                        ) : (
+                                            <p>No attendance records found.</p>
+                                        )}
+                                    </div>
+                                </div>
 
                                 {/*<div className="card mt-4">*/}
                                 {/*    <div className="card-header fw-bold">Attendance Records</div>*/}
