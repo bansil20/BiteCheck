@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { Navbar, Nav, Container, Accordion } from "react-bootstrap";
-import { FaUser } from "react-icons/fa";
+import { Container, Accordion } from "react-bootstrap";
+import PageHeader from "../components/PageHeader/PageHeader";
 
 function FAQ() {
   const [faqs] = useState([
@@ -32,23 +32,12 @@ function FAQ() {
   ]);
 
   return (
-    <div className="dashboard-wrapper d-flex">
-      <div className="main-content flex-grow-1">
-        {/* Navbar */}
-        <Navbar bg="light" expand="lg" className="px-4 shadow-sm">
-          <Navbar.Brand className="pb-3 mb-3 mt-3 border-bottom text-start ps-3">
-            <h4 className="fw-bold mb-0">FAQ Section</h4>
-          </Navbar.Brand>
 
-          <Nav className="ms-auto">
-            <Nav.Link href="#">
-              <FaUser /> Admin
-            </Nav.Link>
-          </Nav>
-        </Navbar>
-
-        {/* FAQ Content */}
+<div className="container mt-4">
+    <PageHeader PageTitle="FAQ"  />
+    {/* FAQ Content */}
         <Container className="mt-5">
+
           <h3 className="mb-4 fw-bold">Frequently Asked Questions</h3>
 
           <Accordion defaultActiveKey="0">
@@ -60,8 +49,9 @@ function FAQ() {
             ))}
           </Accordion>
         </Container>
-      </div>
-    </div>
+</div>
+
+
   );
 }
 

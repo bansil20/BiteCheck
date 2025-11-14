@@ -1,9 +1,9 @@
-import {Container, Nav, Navbar} from "react-bootstrap";
-import {FaUser} from "react-icons/fa";
+
 import {useLocation} from "react-router-dom";
 import React, {useEffect, useState} from "react";
 import axios from "axios";
 import {Table, Spinner} from "react-bootstrap";
+import PageHeader from "../components/PageHeader/PageHeader";
 
 
 function StudentProfile() {
@@ -48,27 +48,8 @@ function StudentProfile() {
 
 
     return (
-        <div className="dashboard-wrapper d-flex">
-            {/* Upper nav*/}
-            <div className="main-content flex-grow-1">
-                {/* Top Navbar */}
-                <Navbar bg="light" expand="lg" className="px-4 shadow-sm">
-                    <Navbar.Brand className="pb-3 mb-3 mt-3 border-bottom text-start ps-3"><h4
-                        className="fw-bold mb-0"> Welcome Admin</h4></Navbar.Brand>
-
-                    <Nav className="ms-auto">
-                        <Nav.Link href="#">
-                            <FaUser/>
-                            cz
-                        </Nav.Link>
-                    </Nav>
-                </Navbar>
-
-
-                {/* Main body */}
-                <Container fluid className="p-4">
-                    <h3>Students Profile</h3>
-
+        <div className="container mt-4">
+    <PageHeader PageTitle="Student Profile"  />
                     <div className="container mt-4">
 
                         {/* Row 1 - Image + Name */}
@@ -198,11 +179,9 @@ function StudentProfile() {
 
                     </div>
 
-                </Container>
-            </div>
         </div>
 
-    )
+    );
 }
 
 export default StudentProfile;

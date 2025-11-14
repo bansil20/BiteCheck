@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -8,6 +9,8 @@ function Register() {
     confirmPassword: ""
   });
 
+  const navigate = useNavigate();
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -15,24 +18,65 @@ function Register() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match");
+      alert("⚠️ Passwords do not match!");
       return;
     }
 
-    console.log("Register Data:", formData);
+    try {
+      const res = await fetch("http://127.0.0.1:5000/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: formData.name,
+          email: formData.email,
+          password: formData.password
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        alert("✅ " + data.message);
+
+        // ✅ Save username and userid locally
+        localStorage.setItem("username", data.username);
+        localStorage.setItem("userid", data.userid);
+
+        // ✅ Optionally also remember the user (auto-login)
+        localStorage.setItem("rememberedUser", JSON.stringify(data));
+
+        navigate("/dashboard");
+      } else {
+        alert("❌ " + data.message);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("⚠️ Server error, please try again later!");
+    }
   };
 
   return (
-    <div className="container d-flex justify-content-center align-items-center" style={{ minHeight: "100vh" }}>
-      <div className="card p-4 shadow" style={{ width: "28rem" }}>
-        <h3 className="text-center mb-4">Smart Attendance - Register</h3>
+    <div
+      className="d-flex justify-content-center align-items-center"
+      style={{
+        minHeight: "100vh",
+        background: "linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)"
+      }}
+    >
+      <div
+        className="card shadow-lg p-4"
+        style={{ width: "30rem", borderRadius: "15px", backgroundColor: "white" }}
+      >
+        <h3 className="text-center mb-4 text-primary fw-bold">
+          Smart Attendance - Register
+        </h3>
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
-            <label className="form-label">Full Name</label>
+            <label className="form-label fw-semibold">Full Name</label>
             <input
               type="text"
               className="form-control"
@@ -45,7 +89,7 @@ function Register() {
           </div>
 
           <div className="mb-3">
-            <label className="form-label">Email address</label>
+            <label className="form-label fw-semibold">Email address</label>
             <input
               type="email"
               className="form-control"
@@ -59,38 +103,47 @@ function Register() {
 
           <div className="row">
             <div className="col">
-              <div className="mb-3">
-                <label className="form-label">Password</label>
-                <input
-                  type="password"
-                  className="form-control"
-                  placeholder="Password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
+              <label className="form-label fw-semibold">Password</label>
+              <input
+                type="password"
+                className="form-control"
+                placeholder="Password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
             </div>
             <div className="col">
-              <div className="mb-3">
-                <label className="form-label">Confirm Password</label>
-                <input
-                  type="password"
-                  className="form-control"
-                  placeholder="Confirm Password"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
+              <label className="form-label fw-semibold">Confirm Password</label>
+              <input
+                type="password"
+                className="form-control"
+                placeholder="Confirm Password"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+              />
             </div>
           </div>
 
-          <button type="submit" className="btn btn-success w-100">
+          <button
+            type="submit"
+            className="btn btn-success w-100 mt-4 fw-semibold"
+            style={{ borderRadius: "10px" }}
+          >
             Register
           </button>
+
+          <div className="text-center mt-3">
+            <small>
+              Already have an account?{" "}
+              <a href="/" className="text-decoration-none fw-semibold">
+                Login here
+              </a>
+            </small>
+          </div>
         </form>
       </div>
     </div>

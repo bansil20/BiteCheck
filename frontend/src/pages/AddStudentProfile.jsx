@@ -1,8 +1,9 @@
 import React, {useState, useRef} from "react";
-import {Button, Card, Col, Container, Form, Row} from "react-bootstrap";
+import {Button, Col, Form, Row} from "react-bootstrap";
 import Webcam from "react-webcam";
 import axios from "axios";
 import {useNavigate} from "react-router-dom";
+import PageHeader from "../components/PageHeader/PageHeader";
 
 function AddStudentProfile() {
     const navigate = useNavigate();
@@ -44,12 +45,12 @@ function AddStudentProfile() {
 
     const handleSubmit = async (e) => {
         e.preventDefault(); // prevent page reload
-            console.log("foemsddfsdfsdf");
+        console.log("foemsddfsdfsdf");
 
         try {
-            console.log("foem",formData);
+            console.log("foem", formData);
             const res = await axios.post("http://127.0.0.1:5000/add_student", formData);
-            console.log("rem",res);
+            console.log("rem", res);
 
             alert(res.data.message);
             navigate("/dashboard");
@@ -61,156 +62,149 @@ function AddStudentProfile() {
 
 
     return (
-        <Container className="mt-4">
-            <Card className="p-4 shadow-lg">
-                <h2 className="text-center mb-4">Add Student Profile</h2>
+        <div className="container mt-4">
+            <PageHeader PageTitle="Add Student"/>
 
-                <Form onSubmit={handleSubmit}>
-                    <Row>
-                        <Col md={6}>
-                            <Form.Group>
-                                <Form.Label>Full Name</Form.Label>
-                                <Form.Control
-                                    type="text"
-                                    name="studname"
-                                    value={formData.studname}
-                                    onChange={handleChange}
-                                    required
-                                />
-                            </Form.Group>
+            <Form onSubmit={handleSubmit}>
+                <Row>
+                    <Col md={6}>
+                        <Form.Group>
+                            <Form.Label>Full Name</Form.Label>
+                            <Form.Control
+                                type="text"
+                                name="studname"
+                                value={formData.studname}
+                                onChange={handleChange}
+                                required
+                            />
+                        </Form.Group>
 
-                            <Form.Group>
-                                <Form.Label>Enrollment Number</Form.Label>
-                                <Form.Control
-                                    type="number"
-                                    name="studpnr"
-                                    value={formData.studpnr}
-                                    onChange={handleChange}
-                                    required
-                                />
-                            </Form.Group>
+                        <Form.Group>
+                            <Form.Label>Enrollment Number</Form.Label>
+                            <Form.Control
+                                type="number"
+                                name="studpnr"
+                                value={formData.studpnr}
+                                onChange={handleChange}
+                                required
+                            />
+                        </Form.Group>
 
-                            <Form.Group>
-                                <Form.Label>Phone</Form.Label>
-                                <Form.Control
-                                    type="number"
-                                    name="studphone"
-                                    value={formData.studphone}
-                                    onChange={handleChange}
-                                    required
-                                />
-                            </Form.Group>
+                        <Form.Group>
+                            <Form.Label>Phone</Form.Label>
+                            <Form.Control
+                                type="number"
+                                name="studphone"
+                                value={formData.studphone}
+                                onChange={handleChange}
+                                required
+                            />
+                        </Form.Group>
 
-                            <Form.Group>
-                                <Form.Label>Email</Form.Label>
-                                <Form.Control
-                                    type="email"
-                                    name="studemail"
-                                    value={formData.studemail}
-                                    onChange={handleChange}
-                                    required
-                                />
-                            </Form.Group>
-                        </Col>
+                        <Form.Group>
+                            <Form.Label>Email</Form.Label>
+                            <Form.Control
+                                type="email"
+                                name="studemail"
+                                value={formData.studemail}
+                                onChange={handleChange}
+                                required
+                            />
+                        </Form.Group>
+                    </Col>
 
-                        <Col md={6}>
-                            <Form.Group>
-                                <Form.Label>Course</Form.Label>
-                                <Form.Select
-                                    name="studcourse"
-                                    value={formData.studcourse}
-                                    onChange={handleChange}
-                                    required
-                                >
-                                    <option value="">Select Course</option>
-                                    <option value="B.Tech">B.Tech</option>
-                                    <option value="MBA">MBA</option>
-                                    <option value="MCA">MCA</option>
-                                </Form.Select>
-                            </Form.Group>
+                    <Col md={6}>
+                        <Form.Group>
+                            <Form.Label>Course</Form.Label>
+                            <Form.Select
+                                name="studcourse"
+                                value={formData.studcourse}
+                                onChange={handleChange}
+                                required
+                            >
+                                <option value="">Select Course</option>
+                                <option value="B.Tech">B.Tech</option>
+                                <option value="MBA">MBA</option>
+                                <option value="MCA">MCA</option>
+                            </Form.Select>
+                        </Form.Group>
 
-                            <Form.Group>
-                                <Form.Label>Hostel Room No.</Form.Label>
-                                <Form.Control
-                                    type="text"
-                                    name="studhostelroom"
-                                    value={formData.studhostelroom}
-                                    onChange={handleChange}
-                                />
-                            </Form.Group>
+                        <Form.Group>
+                            <Form.Label>Hostel Room No.</Form.Label>
+                            <Form.Control
+                                type="text"
+                                name="studhostelroom"
+                                value={formData.studhostelroom}
+                                onChange={handleChange}
+                            />
+                        </Form.Group>
 
-                            <Form.Group>
-                                <Form.Label>Blood Group: </Form.Label>
-                                <Form.Control
-                                    type="text"
-                                    name="studbloodgrp"
-                                    value={formData.studblodgrp}
-                                    onChange={handleChange}
-                                />
-                            </Form.Group>
+                        <Form.Group>
+                            <Form.Label>Blood Group: </Form.Label>
+                            <Form.Control
+                                type="text"
+                                name="studbloodgrp"
+                                value={formData.studblodgrp}
+                                onChange={handleChange}
+                            />
+                        </Form.Group>
 
-                            <Form.Group>
-                                <Form.Label>Remark</Form.Label>
-                                <Form.Control
-                                    as="textarea"
-                                    name="studremark"
-                                    value={formData.studremark}
-                                    onChange={handleChange}
-                                />
-                            </Form.Group>
+                        <Form.Group>
+                            <Form.Label>Remark</Form.Label>
+                            <Form.Control
+                                as="textarea"
+                                name="studremark"
+                                value={formData.studremark}
+                                onChange={handleChange}
+                            />
+                        </Form.Group>
 
-                            {/* Camera Button */}
-                            <div className="mt-3">
-                                {/* Open Camera Button */}
-                                <Button variant="primary" onClick={() => setShowCamera(true)}>
-                                    Open Camera
-                                </Button>
-                            </div>
+                        {/* Camera Button */}
+                        <div className="mt-3">
+                            {/* Open Camera Button */}
+                            <Button variant="primary" onClick={() => setShowCamera(true)}>
+                                Open Camera
+                            </Button>
+                        </div>
 
-                            {/* Show Camera and Register Face Button */}
-                            {showCamera && (
-                                <div className="mt-3 text-center">
-                                    <Webcam
-                                        ref={webcamRef}
-                                        screenshotFormat="image/jpeg"
-                                        width={640}
-                                        height={480}
-                                    />
-                                    <Button
-                                        variant="success"
-                                        className="mt-2"
-                                        onClick={handleCaptureFace} // <-- captures face locally
-                                    >
-                                        Register Face
-                                    </Button>
-                                </div>
-                            )}
+                        {/* Show Camera and Register Face Button */}
+                        {showCamera && (<div className="mt-3 text-center">
+                            <Webcam
+                                ref={webcamRef}
+                                screenshotFormat="image/jpeg"
+                                width={640}
+                                height={480}
+                            />
+                            <Button
+                                variant="success"
+                                className="mt-2"
+                                onClick={handleCaptureFace} // <-- captures face locally
+                            >
+                                Register Face
+                            </Button>
+                        </div>)}
 
-                            {message && <p className="mt-2 text-center">{message}</p>}
-                        </Col>
-                    </Row>
+                        {message && <p className="mt-2 text-center">{message}</p>}
+                    </Col>
+                </Row>
 
-                    {/* Save Student Button */}
-                    <div className="text-center mt-4">
-                        <Button variant="success" type="submit">
-                            Save Student
-                        </Button>
-                    </div>
-                    <Button
-                        variant="secondary"
-                        className="ms-2"
-                        onClick={() => navigate("/dashboard")}
-                    >
-                        Cancel
+                {/* Save Student Button */}
+                <div className="text-center mt-4">
+                    <Button variant="success" type="submit">
+                        Save Student
                     </Button>
+                </div>
+                <Button
+                    variant="secondary"
+                    className="ms-2"
+                    onClick={() => navigate("/dashboard")}
+                >
+                    Cancel
+                </Button>
 
 
-                </Form>
-            </Card>
-        </Container>
-
-    )
-        ;
+            </Form>
+        </div>);
 }
 
 export default AddStudentProfile;

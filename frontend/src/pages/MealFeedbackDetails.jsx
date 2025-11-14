@@ -1,8 +1,9 @@
 import { useParams, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
-import {Card, Container, Row, Col, Navbar, Nav, Button} from "react-bootstrap";
-import {FaDownload, FaStar, FaUser} from "react-icons/fa";
+import React, { useEffect, useState } from "react";
+import {Card, Container, Row, Col, Button} from "react-bootstrap";
+import {FaDownload, FaStar} from "react-icons/fa";
 import axios from "axios";
+import PageHeader from "../components/PageHeader/PageHeader";
 
 function MealFeedbackDetails() {
   const { foodid, date } = useParams();
@@ -66,16 +67,8 @@ function MealFeedbackDetails() {
 
 
   return (
-    <div className="dashboard-wrapper d-flex flex-column min-vh-100">
-      <Navbar bg="white" expand="lg" className="px-4 shadow-sm sticky-top">
-        <Navbar.Brand className="fw-bold">🍽️ Smart Food</Navbar.Brand>
-        <Nav className="ms-auto">
-          <Nav.Link href="#">
-            <FaUser className="me-1" /> Admin
-          </Nav.Link>
-        </Nav>
-      </Navbar>
-
+    <div className="container mt-4">
+    <PageHeader PageTitle=""  />
       <div
         style={{
           backgroundImage: `url(${mealHeroImage})`,

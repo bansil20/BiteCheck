@@ -1,10 +1,12 @@
 import React from "react";
 import { Container, Row, Col, Card } from "react-bootstrap";
 import { FaUsers, FaBullseye, FaEye, FaHeart } from "react-icons/fa";
+import PageHeader from "../components/PageHeader/PageHeader";
 
 function About() {
   return (
-    <div>
+    <div className="container mt-4">
+        <PageHeader PageTitle="About"  />
       {/* Hero Section */}
       <div
         style={{
@@ -34,6 +36,7 @@ function About() {
 
       {/* About Info */}
       <Container className="my-5">
+
         <Row className="justify-content-center text-center mb-5">
           <Col lg={8}>
             <h2 className="fw-bold">Who We Are</h2>

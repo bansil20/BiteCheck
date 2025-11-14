@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
-import { Card, Col, Container, Nav, Navbar, Row } from "react-bootstrap";
-import { FaStar, FaUser } from "react-icons/fa";
+import React, { useState, useEffect } from "react";
+import { Card, Col, Container, Row } from "react-bootstrap";
+import { FaStar } from "react-icons/fa";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+import PageHeader from "../components/PageHeader/PageHeader";
 
 function MealAverage() {
   const { id } = useParams(); // food id
@@ -53,17 +54,8 @@ function MealAverage() {
       : 0;
 
   return (
-    <div className="dashboard-wrapper d-flex flex-column min-vh-100">
-      {/* Top Navbar */}
-      <Navbar bg="white" expand="lg" className="px-4 shadow-sm sticky-top">
-        <Navbar.Brand className="fw-bold">🍽️ Smart Food</Navbar.Brand>
-        <Nav className="ms-auto">
-          <Nav.Link href="#">
-            <FaUser className="me-1" /> Admin
-          </Nav.Link>
-        </Nav>
-      </Navbar>
-
+ <div className="container mt-4">
+    <PageHeader PageTitle=""  />
       {/* ✅ Hero Section with Overall Average */}
       <div
         style={{

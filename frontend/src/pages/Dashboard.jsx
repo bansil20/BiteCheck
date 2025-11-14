@@ -1,37 +1,20 @@
 import React from "react";
-import { Container, Row, Col, Navbar, Nav, Card } from "react-bootstrap";
-import { FaTachometerAlt, FaCalendarAlt, FaClipboardList, FaUser, FaCameraRetro, FaCalendarCheck, FaUserFriends, FaBan } from "react-icons/fa";
+import { Row, Col,Card } from "react-bootstrap";
+import { FaCalendarCheck, FaUserFriends, FaBan } from "react-icons/fa";
 import "./Dashboard.css";
 import { FaCamera } from "react-icons/fa6";
 
-import { FaUserGraduate, FaDownload, FaRegClock, FaStar } from 'react-icons/fa';
-import { MdFace, MdFeedback } from 'react-icons/md';
-import PATHS from "../utlis/constants/Path";
+import PageHeader from "../components/PageHeader/PageHeader";
 
 
 function Dashboard() {
   
   return (
-    <div className="dashboard-wrapper d-flex">
-     
-      
+    <div className="container mt-4">
+            <PageHeader PageTitle="Welcome Admin"/>
+        <br/>
 
-      {/* Upper nav*/}
-      <div className="main-content flex-grow-1">
-        {/* Top Navbar */}
-        <Navbar bg="light" expand="lg" className="px-4 shadow-sm">
-          <Navbar.Brand className="pb-3 mb-3 mt-3 border-bottom text-start ps-3"><h4 className="fw-bold mb-0"> Welcome Admin</h4></Navbar.Brand>
-          <Nav className="ms-auto">
-            <Nav.Link href="#"><FaUser />cz</Nav.Link>
-          </Nav>
-           
-        </Navbar>
-       
-
-        {/* Main body */}
-        <Container fluid className="p-4">
-          <Col>
-            <h3>Recent Data</h3>
+            <h4 className="fw-normal">&nbsp;&nbsp;Recent Data</h4>
               <Row>
                 {/* Card 1 */}
                 <Col md={4}>
@@ -217,10 +200,7 @@ function Dashboard() {
                   {/* </div> */}
                 {/* </div> */}
               </Row>
-          </Col>
-          
-        </Container>
-      </div>
+
     </div>
   );
 }

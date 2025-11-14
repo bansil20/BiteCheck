@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
-import { Card, Col, Container, Nav, Navbar, Row } from "react-bootstrap";
-import { FaUser, FaStar } from "react-icons/fa";
+import {Card, Col, Form, Row} from "react-bootstrap";
+import { FaStar } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import PageHeader from "../components/PageHeader/PageHeader";
 
 function MealRating() {
   const [searchTerm, setSearchTerm] = useState("");
   const [foodItem, setFoodItem] = useState([]);
   const [ratings, setRatings] = useState({}); // store avg rating per foodid
+    const [mealType, setMealType] = useState(""); // "", "Breakfast", "Lunch", "Dinner"
+
 
   const navigate = useNavigate();
 
@@ -49,9 +52,12 @@ function MealRating() {
   };
 
   // ✅ Filter search
-  const filteredFoods = foodItem.filter((food) =>
-    food.foodname.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredFoods = foodItem.filter((food) => {
+  const matchesSearch = food.foodname.toLowerCase().includes(searchTerm.toLowerCase());
+  const matchesMeal = mealType === "" || food.mealtype?.toLowerCase() === mealType.toLowerCase();
+  return matchesSearch && matchesMeal;
+});
+
 
   // ✅ Render stars for average rating
   const renderStars = (rating) => {
@@ -69,37 +75,34 @@ function MealRating() {
   };
 
   return (
-    <div className="dashboard-wrapper d-flex">
-      {/* Main Content */}
-      <div className="main-content flex-grow-1">
-        {/* Navbar */}
-        <Navbar bg="light" expand="lg" className="px-4 shadow-sm">
-          <Navbar.Brand className="pb-3 mb-3 mt-3 border-bottom text-start ps-3">
-            <h4 className="fw-bold mb-0">Welcome Admin</h4>
-          </Navbar.Brand>
-
-          <Nav className="ms-auto">
-            <Nav.Link href="#">
-              <FaUser /> cz
-            </Nav.Link>
-          </Nav>
-        </Navbar>
-
-        {/* Page Body */}
-        <Container fluid className="p-4">
-          <h3>Meal Rating</h3>
+    <div className="container mt-4">
+    <PageHeader PageTitle="Meal Rating"  />
           <div className="container mt-4">
             {/* Search */}
-            <div className="mb-4">
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Search food..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ maxWidth: "300px" }}
-              />
-            </div>
+            <div className="d-flex justify-content-between align-items-center mb-4">
+  {/* Search box */}
+  <input
+    type="text"
+    className="form-control"
+    placeholder="Search food..."
+    value={searchTerm}
+    onChange={(e) => setSearchTerm(e.target.value)}
+    style={{ maxWidth: "250px" }}
+  />
+
+  {/* Meal type dropdown */}
+  <Form.Select
+    style={{ maxWidth: "180px" }}
+    value={mealType}
+    onChange={(e) => setMealType(e.target.value)}
+  >
+    <option value="">All Meals</option>
+    <option value="Breakfast">Breakfast</option>
+    <option value="Lunch">Lunch</option>
+    <option value="Dinner">Dinner</option>
+  </Form.Select>
+</div>
+
 
             {/* Food Cards */}
             <Row>
@@ -159,8 +162,6 @@ function MealRating() {
               ))}
             </Row>
           </div>
-        </Container>
-      </div>
     </div>
   );
 }

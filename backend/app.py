@@ -2,16 +2,15 @@ import os
 import base64
 import cv2
 import numpy as np
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from PIL import Image
 
-from models import db, Student, Timetable, Attendance, food, Feedback
+from models import db, Student, Timetable, Attendance, food, Feedback, User
 from flask_migrate import Migrate
-from datetime import datetime, timedelta
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, supports_credentials=True)
 
 # ================= DATABASE CONFIG =================
 app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:@localhost:3306/bitecheck"
@@ -30,6 +29,82 @@ if not os.path.exists(DATASET_PATH):
 
 HAAR_CASCADE = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
 TRAINER_PATH = "trainer.yml"
+
+
+
+
+
+
+
+
+@app.route("/register", methods=["POST"])
+def register_user():
+    data = request.get_json()
+    username = data.get('username')
+    email = data.get('email')
+    password = data.get('password')
+
+    if not username or not email or not password:
+        return jsonify({"success": False, "message": "All fields are required"}), 400
+
+    # Check if user already exists
+    existing_user = User.query.filter_by(email=email).first()
+    if existing_user:
+        return jsonify({"success": False, "message": "Email already registered"}), 400
+
+    # Create new user
+    new_user = User(username=username, email=email, password=password)
+    db.session.add(new_user)
+    db.session.commit()
+
+    # ✅ Include username and userid in response
+    return jsonify({
+        "success": True,
+        "message": "Registration successful!",
+        "username": new_user.username,
+        "userid": new_user.userid
+    }), 201
+
+
+
+
+
+@app.route("/login", methods=["POST"])
+def login():
+    data = request.get_json()
+    email = data.get("email")
+    password = data.get("password")
+
+    user = User.query.filter_by(email=email, password=password).first()
+
+    if user:
+        return jsonify({
+            "success": True,
+            "message": f"Welcome {user.username}!",
+            "username": user.username,
+            "userid": user.userid
+        })
+    else:
+        return jsonify({"success": False, "message": "Invalid email or password"})
+
+
+@app.route("/current_user", methods=["GET"])
+def current_user():
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"username": None}), 401
+
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"username": None}), 404
+
+    return jsonify({"username": user.username})
+
+
+@app.route("/logout", methods=["POST"])
+def logout():
+    session.pop("user_id", None)
+    return jsonify({"message": "Logged out"})
 
 
 # -------------------- HELPERS --------------------
@@ -246,16 +321,24 @@ def get_timetable():
 
 @app.route("/get_foods", methods=["GET"])
 def get_foods():
-    foods = food.query.all()
+    foods = (
+        db.session.query(food, Timetable.mealtype)
+        .join(Timetable, food.foodid == Timetable.foodid)
+        .all()
+    )
+
     result = []
-    for f in foods:
+    for f, mealtype in foods:
         result.append({
             "foodid": f.foodid,
             "foodname": f.foodname,
-            "fooddescription": f.fooddescription or "Delicious food",
+            "fooddescription": f.fooddescription,
             "foodimage": f"/{f.foodimage}" if f.foodimage else "",
+            "mealtype": mealtype
         })
+
     return jsonify(result)
+
 
 
 
@@ -281,35 +364,65 @@ def get_attendance_in_stdprofile(studid):
 
 
 
-@app.route("/get_current_food", methods=["GET"])
+from datetime import datetime, timedelta
+
+@app.route('/get_current_food', methods=['GET'])
 def get_current_food():
     now = datetime.now()
     current_time = now.time()
     current_day = now.strftime("%A")
 
-    if datetime.strptime("06:00", "%H:%M").time() <= current_time < datetime.strptime("10:30", "%H:%M").time():
-        meal = "Breakfast"
-    elif datetime.strptime("11:00", "%H:%M").time() <= current_time < datetime.strptime("15:30", "%H:%M").time():
-        meal = "Lunch"
-    elif datetime.strptime("18:30", "%H:%M").time() <= current_time < datetime.strptime("23:59", "%H:%M").time():
-        meal = "Dinner"
-    else:
-        return jsonify({"message": "No meal right now"}), 404
+    meal_schedule = [
+        ("Breakfast", "06:00", "10:30"),
+        ("Lunch", "11:00", "15:30"),
+        ("Dinner", "18:30", "23:59")
+    ]
 
-    timetable_entry = Timetable.query.filter_by(day=current_day, mealtype=meal).first()
-    if not timetable_entry:
-        return jsonify({"message": f"No {meal} scheduled for today"}), 404
+    current_meal = None
+    upcoming_meal = None
 
-    food_item = timetable_entry.food
-    if not food_item:
-        return jsonify({"message": "Food details not found"}), 404
+    for meal, start, end in meal_schedule:
+        start_t = datetime.strptime(start, "%H:%M").time()
+        end_t = datetime.strptime(end, "%H:%M").time()
 
-    return jsonify({
-        "foodid": food_item.foodid,
-        "foodname": food_item.foodname,
-        "fooddescription": food_item.fooddescription or "Delicious food",
-        "foodimage": f"/{food_item.foodimage}" if food_item.foodimage else ""
-    })
+        if start_t <= current_time < end_t:
+            current_meal = meal
+            break
+        elif current_time < start_t and not upcoming_meal:
+            upcoming_meal = (meal, start)
+
+    # If current meal available
+    if current_meal:
+        entry = Timetable.query.filter_by(day=current_day, mealtype=current_meal).first()
+        if entry and entry.food:
+            food = entry.food
+            return jsonify({
+                "status": "current",
+                "meal": current_meal,
+                "foodid": food.foodid,
+                "foodname": food.foodname,
+                "fooddescription": food.fooddescription or "Delicious food",
+                "foodimage": f"/{food.foodimage}" if food.foodimage else ""
+            })
+
+    # Otherwise, show upcoming
+    if upcoming_meal:
+        meal, start = upcoming_meal
+        entry = Timetable.query.filter_by(day=current_day, mealtype=meal).first()
+        if entry and entry.food:
+            food = entry.food
+            meal_start_datetime = f"{now.strftime('%Y-%m-%d')} {start}"
+            return jsonify({
+                "status": "upcoming",
+                "meal": meal,
+                "mealStartTime": meal_start_datetime,
+                "foodid": food.foodid,
+                "foodname": food.foodname,
+                "fooddescription": food.fooddescription or "Delicious food",
+                "foodimage": f"/{food.foodimage}" if food.foodimage else ""
+            })
+
+    return jsonify({"message": "No meal or upcoming food found."}), 404
 
 
 from flask import send_from_directory
@@ -356,6 +469,7 @@ def submit_feedback():
     )
     db.session.add(new_feedback)
     db.session.commit()  # ✅ This writes it to the DB
+
 
     return jsonify({"message": "Feedback submitted successfully"}), 200
 
@@ -567,6 +681,16 @@ def download_feedback_pdf(date, foodname):
         download_name=f"Feedback_{foodname}_{date}.pdf",
         mimetype="application/pdf"
     )
+
+
+
+
+
+
+
+
+
+
 
 
 if __name__ == "__main__":

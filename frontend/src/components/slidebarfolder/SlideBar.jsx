@@ -31,7 +31,7 @@ function SlideBar() {
         {title: "Dashboard", icon: <FaTachometerAlt/>, path: PATHS.DASHBOARD},
         {title: "Student Details", icon: <FaUserGraduate/>, path: PATHS.STUDENTDETAILS},
         {title: "Meal Feedback", icon: <MdFeedback/>, path: PATHS.STUDENTFEEDBACK},
-        {title: "Download Report", icon: <FaDownload/>, path: "#"},
+        // {title: "Download Report", icon: <FaDownload/>, path: "#"},
         {title: "Meal Time Table", icon: <FaRegClock/>, path: PATHS.TIMETABLE},
         {title: "Meal Rating", icon: <FaStar/>, path: PATHS.MEALRATING},
         {title: "FAQ", icon: <FaQuestion/>, path: PATHS.FAQ},
@@ -43,7 +43,7 @@ function SlideBar() {
             {/* Header */}
             <div className="sidebar-header">
                 <div className="brand">
-                    <h3 className="brand-name">Bite Check</h3>
+                    <h3 className="brand-name">BiteCheck</h3>
                 </div>
                 <button
                     className="btn btn-sm btn-outline-light toggle-btn"
