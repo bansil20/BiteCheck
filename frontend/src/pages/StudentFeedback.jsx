@@ -100,7 +100,7 @@ function StudentFeedback() {
         {/* Food Image */}
         <div className="mb-3">
           <img
-            src={`http://127.0.0.1:5000${food.foodimage}`}
+            src={`${food.foodimage}`}
             style={{ width: "200px", height: "200px", objectFit: "cover" }}
             alt={food.foodname}
             className="img-fluid rounded shadow"

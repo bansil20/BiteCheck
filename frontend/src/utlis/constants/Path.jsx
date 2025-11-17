@@ -12,6 +12,7 @@ const PATHS = {
     FACEDETECTION : "/face_detection",
     TIMETABLE : "/meal_timetable",
     MEALFEEDBACKDETAILS : "/meal_feedback_details/:foodid/:date",
+    SCANANDPAY : "/scan_and_pay",
     FAQ : "/faq",
     ABOUT : "/about"
   }

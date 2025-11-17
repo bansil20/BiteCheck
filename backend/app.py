@@ -5,6 +5,7 @@ import numpy as np
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from PIL import Image
+from datetime import datetime
 
 from models import db, Student, Timetable, Attendance, food, Feedback, User
 from flask_migrate import Migrate
@@ -30,11 +31,23 @@ if not os.path.exists(DATASET_PATH):
 HAAR_CASCADE = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
 TRAINER_PATH = "trainer.yml"
 
+# -------------------- HELPERS --------------------
 
 
+print("Python Time:", datetime.now())
 
 
+def build_food_image_url(filename):
+    if not filename:
+        return ""
+    return f"http://localhost:5000/static/food_images/{filename}"
 
+
+import random
+
+
+def generate_secret_code():
+    return f"{random.randint(0, 999999):06d}"  # ensures 6 digits with leading zeros
 
 
 @app.route("/register", methods=["POST"])
@@ -64,9 +77,6 @@ def register_user():
         "username": new_user.username,
         "userid": new_user.userid
     }), 201
-
-
-
 
 
 @app.route("/login", methods=["POST"])
@@ -107,7 +117,6 @@ def logout():
     return jsonify({"message": "Logged out"})
 
 
-# -------------------- HELPERS --------------------
 def decode_image(img_data):
     """Convert base64 from React to OpenCV image"""
     img_data = img_data.split(",")[1]  # remove data:image/jpeg;base64,
@@ -121,7 +130,7 @@ def train_or_update_recognizer(new_student_id):
     Update the recognizer incrementally when a new student is added.
     Re-trains including all folders but avoids losing previous learned data.
     """
-    recognizer = cv2.face.LBPHFaceRecognizer_create()
+    recognizer = cv2.face.LBPHFaceRecognizer_create() #Local Binary Patterns Histograms
 
     face_samples = []
     ids = []
@@ -171,7 +180,8 @@ def add_student():
         studbloodgrp=data.get("studbloodgrp"),
         studremark=data.get("studremark"),
         studhostelroom=data.get("studhostelroom"),
-        studface={"base64": img_data}
+        studface={"base64": img_data},
+        studsecretcode=generate_secret_code()
     )
     db.session.add(new_student)
     db.session.commit()
@@ -196,12 +206,12 @@ def add_student():
     # Train or update recognizer
     train_or_update_recognizer(new_student.studid)
 
-    return jsonify({"message": "✅ Student registered with face successfully"})
+    return jsonify({"message": "✅ Student registered with face successfully", "data": new_student.studsecretcode})
 
 
 @app.route("/get_student", methods=["GET"])
 def get_students():
-    students = Student.query.all()
+    students = Student.query.filter_by().all()
 
     if not students:
         return jsonify({"message": "❌ No students registered yet"}), 404
@@ -215,6 +225,7 @@ def get_students():
                      "bloodgrp": student.studbloodgrp,
                      "remark": student.studremark,
                      "hostelroom": student.studhostelroom,
+                     "studsecretcode": student.studsecretcode,
                      "face": student.studface
                      } for student in students])
 
@@ -222,11 +233,27 @@ def get_students():
 @app.route("/recognize_face", methods=["POST"])
 def recognize_face():
     data = request.get_json()
+
+    # ----------------------------------------------------
+    # 1️⃣ SECRET CODE ATTENDANCE (NO FACE REQUIRED)
+    # ----------------------------------------------------
+    secret_code = data.get("code")
+    if secret_code:
+        student = Student.query.filter_by(studsecretcode=secret_code).first()
+
+        if not student:
+            return jsonify({"recognized": False, "message": "❌ Invalid Secret Code"}), 404
+
+        return mark_attendance(student, via="code")
+
+    # ----------------------------------------------------
+    # 2️⃣ FACE ATTENDANCE
+    # ----------------------------------------------------
     img_data = data.get("image")
     if not img_data:
         return jsonify({"recognized": False, "message": "❌ No image provided"}), 400
 
-    # Decode base64 image
+    # Decode base64 → frame
     image = decode_image(img_data)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     faces = HAAR_CASCADE.detectMultiScale(gray, 1.3, 5)
@@ -234,29 +261,12 @@ def recognize_face():
     if len(faces) == 0:
         return jsonify({"recognized": False, "message": "❌ No face detected"}), 400
 
-    # Check if model exists
+    # Load recognizer
     if not os.path.exists(TRAINER_PATH):
         return jsonify({"recognized": False, "message": "❌ Model not trained yet"}), 400
 
     recognizer = cv2.face.LBPHFaceRecognizer_create()
     recognizer.read(TRAINER_PATH)
-
-    # Function to detect current meal/day
-    def get_current_meal_and_day():
-        now = datetime.now()
-        current_time = now.time()
-        current_day = now.strftime("%A")
-
-        if datetime.strptime("06:00", "%H:%M").time() <= current_time < datetime.strptime("10:30", "%H:%M").time():
-            meal = "Breakfast"
-        elif datetime.strptime("11:00", "%H:%M").time() <= current_time < datetime.strptime("15:30", "%H:%M").time():
-            meal = "Lunch"
-        elif datetime.strptime("18:30", "%H:%M").time() <= current_time < datetime.strptime("23:59", "%H:%M").time():
-            meal = "Dinner"
-        else:
-            meal = None
-
-        return current_day, meal
 
     # Recognize face
     for (x, y, w, h) in faces:
@@ -265,43 +275,78 @@ def recognize_face():
 
         if confidence < 70:
             student = db.session.get(Student, label)
-            if student:
-                current_day, current_meal = get_current_meal_and_day()
-
-                if not current_meal:
-                    return jsonify({"recognized": True, "name": student.studname,
-                                    "message": "✅ Face recognized but not meal time"}), 200
-
-                # Find the matching food from Timetable
-                timetable_entry = Timetable.query.filter_by(day=current_day, mealtype=current_meal).first()
-
-                if not timetable_entry:
-                    return jsonify({"recognized": True, "name": student.studname,
-                                    "message": f"✅ Recognized but no {current_meal} found in timetable"}), 200
-
-                # Create attendance entry
-                new_attendance = Attendance(
-                    studid=student.studid,
-                    status="Present",
-                    food_id=timetable_entry.foodid
-                )
-                db.session.add(new_attendance)
-                db.session.commit()
-
-                print(f"✅ Attendance marked for {student.studname} ({current_day}, {current_meal})")
-
-                return jsonify({
-                    "recognized": True,
-                    "name": student.studname,
-                    "day": current_day,
-                    "meal": current_meal,
-                    "food": timetable_entry.food.foodname,
-                    "message": "✅ Attendance marked successfully"
-                }), 200
-            else:
+            if not student:
                 return jsonify({"recognized": False, "message": "❌ Unknown student"}), 404
 
+            return mark_attendance(student, via="face")
+
     return jsonify({"recognized": False, "message": "❌ Face not recognized"}), 400
+
+
+
+
+def mark_attendance(student, via="face"):
+    from datetime import datetime, date
+
+    now = datetime.now()
+    today = date.today()
+    current_day = now.strftime("%A")
+    current_time = now.time()
+
+    # Detect meal slot
+    if datetime.strptime("06:00", "%H:%M").time() <= current_time < datetime.strptime("10:30", "%H:%M").time():
+        meal = "Breakfast"
+    elif datetime.strptime("11:00", "%H:%M").time() <= current_time < datetime.strptime("15:30", "%H:%M").time():
+        meal = "Lunch"
+    elif datetime.strptime("18:30", "%H:%M").time() <= current_time < datetime.strptime("23:59", "%H:%M").time():
+        meal = "Dinner"
+    else:
+        return jsonify({
+            "recognized": True,
+            "name": student.studname,
+            "message": "⚠️ Not meal time"
+        }), 200
+
+    # Find food for that meal
+    timetable_entry = Timetable.query.filter_by(day=current_day, mealtype=meal).first()
+    if not timetable_entry:
+        return jsonify({
+            "recognized": True,
+            "name": student.studname,
+            "message": f"⚠️ No {meal} found in timetable"
+        }), 200
+
+    # Check if already marked
+    existing = Attendance.query.filter(
+        Attendance.studid == student.studid,
+        Attendance.food_id == timetable_entry.foodid,
+        func.date(Attendance.timestamp) == today
+    ).first()
+
+    if existing:
+        return jsonify({
+            "recognized": True,
+            "name": student.studname,
+            "meal": meal,
+            "message": "⚠️ Attendance already marked for this meal"
+        }), 200
+
+    # Mark new attendance
+    new_attendance = Attendance(
+        studid=student.studid,
+        food_id=timetable_entry.foodid,
+        status="Present"
+    )
+    db.session.add(new_attendance)
+    db.session.commit()
+
+    return jsonify({
+        "recognized": True,
+        "name": student.studname,
+        "meal": meal,
+        "food": timetable_entry.food.foodname,
+        "message": f"✅ {student.studname} Attendance marked successfully ({via})"
+    }), 200
 
 
 @app.route("/get_timetable", methods=["GET"])
@@ -333,13 +378,11 @@ def get_foods():
             "foodid": f.foodid,
             "foodname": f.foodname,
             "fooddescription": f.fooddescription,
-            "foodimage": f"/{f.foodimage}" if f.foodimage else "",
+            "foodimage": build_food_image_url(f.foodimage),
             "mealtype": mealtype
         })
 
     return jsonify(result)
-
-
 
 
 @app.route("/get_attendance/<int:studid>", methods=["GET"])
@@ -363,8 +406,8 @@ def get_attendance_in_stdprofile(studid):
     return jsonify(result)
 
 
-
 from datetime import datetime, timedelta
+
 
 @app.route('/get_current_food', methods=['GET'])
 def get_current_food():
@@ -402,7 +445,7 @@ def get_current_food():
                 "foodid": food.foodid,
                 "foodname": food.foodname,
                 "fooddescription": food.fooddescription or "Delicious food",
-                "foodimage": f"/{food.foodimage}" if food.foodimage else ""
+                "foodimage": build_food_image_url(food.foodimage)
             })
 
     # Otherwise, show upcoming
@@ -419,7 +462,8 @@ def get_current_food():
                 "foodid": food.foodid,
                 "foodname": food.foodname,
                 "fooddescription": food.fooddescription or "Delicious food",
-                "foodimage": f"/{food.foodimage}" if food.foodimage else ""
+                "foodimage": build_food_image_url(food.foodimage)
+
             })
 
     return jsonify({"message": "No meal or upcoming food found."}), 404
@@ -428,11 +472,10 @@ def get_current_food():
 from flask import send_from_directory
 import os
 
+
 @app.route("/food_images/<path:filename>")
 def serve_food_image(filename):
     return send_from_directory(os.path.join(app.root_path, "static/food_images"), filename)
-
-
 
 
 EMOJI_TO_RATING = {
@@ -442,6 +485,7 @@ EMOJI_TO_RATING = {
     "😊": 4,
     "😍": 5
 }
+
 
 @app.route("/submit_feedback", methods=["POST"])
 def submit_feedback():
@@ -470,10 +514,7 @@ def submit_feedback():
     db.session.add(new_feedback)
     db.session.commit()  # ✅ This writes it to the DB
 
-
     return jsonify({"message": "Feedback submitted successfully"}), 200
-
-
 
 
 @app.route("/get_feedback/<int:foodid>", methods=["GET"])
@@ -506,7 +547,6 @@ def get_feedback(foodid):
     return jsonify(result)
 
 
-
 @app.route("/get_feedback_by_date/<int:foodid>/<string:date>", methods=["GET"])
 def get_feedback_by_date(foodid, date):
     start_date = datetime.strptime(date, "%Y-%m-%d")
@@ -531,11 +571,11 @@ def get_feedback_by_date(foodid, date):
     return jsonify(result)
 
 
-
 from flask import send_file
 import io
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
+
 
 @app.route('/download_attendance_pdf/<int:student_id>')
 def download_attendance_pdf(student_id):
@@ -569,6 +609,7 @@ def download_attendance_pdf(student_id):
         mimetype="application/pdf"
     )
 
+
 @app.route("/get_student/<int:student_id>", methods=["GET"])
 def get_student_by_id(student_id):
     student = Student.query.get(student_id)
@@ -585,6 +626,7 @@ def get_student_by_id(student_id):
         "bloodgrp": student.studbloodgrp,
         "remark": student.studremark,
         "hostelroom": student.studhostelroom,
+        "studsecretcode": student.studsecretcode,
         "face": student.studface
     })
 
@@ -617,7 +659,6 @@ def get_attendance_data(student_id):
         }
         for r in records
     ]
-
 
 
 @app.route("/download_feedback_pdf/<date>/<foodname>", methods=["GET"])
@@ -683,14 +724,168 @@ def download_feedback_pdf(date, foodname):
     )
 
 
+def get_last_served_date_for_food(foodid):
+    """
+    Determine last date this food was served using Attendance records.
+    Falls back to latest feedback date if attendance not available.
+    """
+    last_att = (
+        db.session.query(Attendance)
+        .filter(Attendance.food_id == foodid)
+        .order_by(Attendance.timestamp.desc())
+        .first()
+    )
+    if last_att:
+        return last_att.timestamp.date()
+
+    # fallback: use latest feedback date for that food
+    last_fb = (
+        db.session.query(Feedback)
+        .filter(Feedback.foodid == foodid)
+        .order_by(Feedback.created_at.desc())
+        .first()
+    )
+    if last_fb:
+        return last_fb.created_at.date()
+
+    return None
 
 
+def get_feedback_comments_for_food_by_date(foodid, date_obj):
+    """
+    Return list of comment texts (strings) for given foodid and date (python date).
+    """
+    start = datetime.combine(date_obj, datetime.min.time())
+    end = start + timedelta(days=1)
+    fbs = Feedback.query.filter(
+        Feedback.foodid == foodid,
+        Feedback.created_at >= start,
+        Feedback.created_at < end
+    ).all()
+    return [fb.comment for fb in fbs if fb.comment and fb.comment.strip()]
 
 
+from sqlalchemy import func
+# from feedback_ml import analyze_feedback_comments
+
+from feedback_ml import (
+    predict_labels_for_comments,
+    aggregate_labels_from_labellists,
+    models_exist, combine_with_sentiment
+)
 
 
+@app.route("/get_food_suggestion/<int:foodid>", methods=["GET"])
+def get_food_suggestion(foodid):
+    # Step 1 — fetch all feedback for this food
+    feedbacks = Feedback.query.filter_by(foodid=foodid).all()
+    if not feedbacks:
+        return jsonify({
+            "foodid": foodid,
+            "issues": {},
+            "suggestion_paragraph": "No feedback available for this food.",
+            "num_feedbacks_analyzed": 0
+        })
+
+    # Step 2 — latest date only (ignore time)
+    latest_date = db.session.query(
+        func.date(Feedback.created_at)
+    ).filter(Feedback.foodid == foodid).order_by(
+        func.date(Feedback.created_at).desc()
+    ).first()[0]
+
+    # Step 3 — fetch all comments from that date
+    same_date_feedbacks = Feedback.query.filter(
+        Feedback.foodid == foodid,
+        func.date(Feedback.created_at) == latest_date
+    ).all()
+
+    if not same_date_feedbacks:
+        return jsonify({
+            "foodid": foodid,
+            "issues": {},
+            "last_served_date": str(latest_date),
+            "suggestion_paragraph": "No feedback found for last serving date.",
+            "num_feedbacks_analyzed": 0
+        })
+
+    # Extract comment text
+    comments = [fb.comment for fb in same_date_feedbacks]
+
+    # Step 4 — if ML model does not exist
+    if not models_exist():
+        return jsonify({
+            "foodid": foodid,
+            "last_served_date": str(latest_date),
+            "num_feedbacks_analyzed": len(comments),
+            "issues": {},
+            "top_issues": [],
+            "suggestion_paragraph": "ML model not trained yet. Run train_feedback_model.py."
+        })
+
+    # Step 5 — Predict labels using ML model
+    labels_per_comment, _ = predict_labels_for_comments(comments)
+
+    # Step 6 — Aggregate all predicted labels
+    issue_counts, sorted_list = aggregate_labels_from_labellists(labels_per_comment)
+
+    # Step 7 — Generate natural language suggestion
+    suggestion_text = combine_with_sentiment(issue_counts, comments)
+
+    # Step 8 — Final response
+    return jsonify({
+        "foodid": foodid,
+        "last_served_date": str(latest_date),
+        "num_feedbacks_analyzed": len(comments),
+        "issues": issue_counts,
+        # "foodimage": build_food_image_url(food.foodimage),
+        "top_issues": [issue for issue, count in sorted_list],
+        "suggestion_paragraph": suggestion_text
+    })
 
 
+def analyze_feedback_comments(comments):
+    """Uses ML model to detect issues from comments."""
+    import pickle
+
+    model_path = "ml_models/model.pkl"
+    vectorizer_path = "ml_models/vectorizer.pkl"
+    mlb_path = "ml_models/mlb.pkl"
+
+    with open(model_path, "rb") as f:
+        model = pickle.load(f)
+    with open(vectorizer_path, "rb") as f:
+        vectorizer = pickle.load(f)
+    with open(mlb_path, "rb") as f:
+        mlb = pickle.load(f)
+
+    X = vectorizer.transform(comments)
+    y_pred = model.predict(X)
+
+    # Aggregate issues from all comments
+    labels = mlb.classes_
+    issue_counts = {}
+
+    for row in y_pred:
+        for i, val in enumerate(row):
+            if val == 1:
+                issue = labels[i]
+                issue_counts[issue] = issue_counts.get(issue, 0) + 1
+
+    if not issue_counts:
+        return {}, "No specific issues found in recent feedback."
+
+    # Sort issues by count
+    sorted_issues = dict(sorted(issue_counts.items(), key=lambda x: x[1], reverse=True))
+
+    # Prepare natural language suggestion
+    top = list(sorted_issues.keys())[:3]
+    sentence = (
+        f"Based on last serving feedback, students mostly complained about: "
+        f"{', '.join(top)}. Consider improving these aspects in the next preparation."
+    )
+
+    return sorted_issues, sentence
 
 
 if __name__ == "__main__":

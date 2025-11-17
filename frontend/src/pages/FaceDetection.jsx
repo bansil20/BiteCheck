@@ -1,4 +1,4 @@
-import React, {useRef, useState, useEffect} from "react";
+import React, { useRef, useState, useEffect } from "react";
 import Webcam from "react-webcam";
 import axios from "axios";
 import PageHeader from "../components/PageHeader/PageHeader";
@@ -6,14 +6,14 @@ import PageHeader from "../components/PageHeader/PageHeader";
 function FaceDetection() {
     const webcamRef = useRef(null);
     const [message, setMessage] = useState("");
+    const [secret, setSecret] = useState("");
 
     useEffect(() => {
-        // Start continuous scanning every 2 seconds
         const id = setInterval(() => {
             captureAndRecognize();
         }, 2000);
 
-        return () => clearInterval(id); // cleanup on unmount
+        return () => clearInterval(id);
     }, []);
 
     const captureAndRecognize = async () => {
@@ -25,43 +25,95 @@ function FaceDetection() {
             const res = await axios.post("http://127.0.0.1:5000/recognize_face", {
                 image: imageSrc,
             });
-
-            if (res.data.recognized) {
-                setMessage(`${res.data.name} - Present ✅`);
-            } else {
-                setMessage("Not recognized ❌");
-            }
+            setMessage(res.data.message || "✔ Success");
         } catch (err) {
-            console.error(err);
-            if (err.response && err.response.data) {
-                setMessage(err.response.data.message || "❌ Error recognizing face");
-            } else {
-                setMessage("❌ Error recognizing face");
-            }
+            setMessage(err.response?.data?.message || "❌ Error recognizing face");
+        }
+    };
+
+    const submitCode = async () => {
+        if (!secret.trim()) {
+            setMessage("❌ Please enter your 6-digit code");
+            return;
+        }
+
+        try {
+            const res = await axios.post("http://127.0.0.1:5000/recognize_face", {
+                code: secret
+            });
+
+            setMessage(res.data.message);
+            setSecret("");
+        } catch (err) {
+            setMessage(err.response?.data?.message || "❌ Error marking attendance");
         }
     };
 
     return (
         <div className="container mt-4">
-            <PageHeader PageTitle="Face Attendence"/>
-            <div className="container mt-4">
-                <div className="container mt-4" style={{textAlign: "center"}}>
-                    <h2>📸 Face Recognition</h2>
-                    <Webcam
-                        ref={webcamRef}
-                        screenshotFormat="image/jpeg"
-                        style={{
-                            width: "60%",
-                            borderRadius: "10px",
-                            marginBottom: "15px",
-                        }}
-                    />
-                    <h3>{message}</h3>
-                </div>
-            </div>
+            <PageHeader PageTitle="Face Attendance" />
 
+            <div className="text-center mt-4">
+
+                <h3 style={{ fontSize: "30px" }}>📸 Face Recognition</h3>
+
+                {/* Webcam */}
+                <Webcam
+                    ref={webcamRef}
+                    screenshotFormat="image/jpeg"
+                    style={{
+                        width: "48%",
+                        borderRadius: "10px",
+                        marginBottom: "10px",
+                        border: "2px solid #ccc"
+                    }}
+                />
+
+                {/* Message */}
+                <div
+                    className="alert alert-info mt-3"
+                    style={{
+                        width: "48%",
+                        margin: "auto",
+                        padding: "8px",
+                        fontSize: "16px"
+                    }}
+                >
+                    <b>{message}</b>
+                </div>
+
+                {/* SECRET CODE BOX */}
+                <div
+                    className="card shadow p-3 mt-4"
+                    style={{
+                        width: "330px",
+                        margin: "auto",
+                        borderRadius: "12px"
+                    }}
+                >
+                    <h5 className="mb-3">Use Secret Code</h5>
+
+                    <input
+                        type="text"
+                        maxLength="6"
+                        className="form-control text-center"
+                        placeholder="Enter 6-digit code"
+                        value={secret}
+                        onChange={(e) => setSecret(e.target.value)}
+                        style={{ height: "42px", fontSize: "16px" }}
+                    />
+
+                    <button
+                        className="btn btn-primary mt-3 w-100"
+                        onClick={submitCode}
+                        style={{ height: "42px", fontSize: "16px" }}
+                    >
+                        Submit Code
+                    </button>
+                </div>
+
+            </div>
         </div>
-        //
     );
 }
 

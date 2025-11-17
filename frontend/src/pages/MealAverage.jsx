@@ -29,7 +29,7 @@ function MealAverage() {
 
   const mealName = mealFromState?.foodname || `Meal #${id}`;
   const mealHeroImage =
-    `http://127.0.0.1:5000${mealFromState?.foodimage}` ||
+    `${mealFromState?.foodimage}` ||
     "https://via.placeholder.com/600x240";
 
   const renderStars = (rating) => {

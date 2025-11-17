@@ -2,7 +2,7 @@ import {Nav} from "react-bootstrap";
 import {Link, useLocation} from "react-router-dom";
 import {useEffect, useState} from "react";
 import PATHS from "../../utlis/constants/Path";
-import {MdFace, MdFeedback} from "react-icons/md";
+import {MdFace, MdFeedback, MdQrCodeScanner} from "react-icons/md";
 import {
     FaDownload,
     FaRegClock,
@@ -34,6 +34,7 @@ function SlideBar() {
         // {title: "Download Report", icon: <FaDownload/>, path: "#"},
         {title: "Meal Time Table", icon: <FaRegClock/>, path: PATHS.TIMETABLE},
         {title: "Meal Rating", icon: <FaStar/>, path: PATHS.MEALRATING},
+        {title: "Scan and Pay", icon: <MdQrCodeScanner/>, path: PATHS.SCANANDPAY},
         {title: "FAQ", icon: <FaQuestion/>, path: PATHS.FAQ},
         {title: "About", icon: <FaInfoCircle />, path: PATHS.ABOUT},
     ];

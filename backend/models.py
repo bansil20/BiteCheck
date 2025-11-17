@@ -1,8 +1,11 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Enum
 import sqlalchemy
 from flask_sqlalchemy import SQLAlchemy
+import pytz
+from datetime import datetime
 
+IST = pytz.timezone("Asia/Kolkata")
 db = SQLAlchemy()
 
 class User(db.Model):
@@ -22,6 +25,7 @@ class Student(db.Model):
     studremark = db.Column(db.String(50), nullable=False)
     studhostelroom = db.Column(db.String(50), nullable=False)
     studbloodgrp = db.Column(db.String(10), nullable=False)
+    studsecretcode = db.Column(db.String(6), unique=True)
     studface = db.Column(sqlalchemy.JSON, nullable=True)
 
     attendances = db.relationship('Attendance', backref='student', lazy=True)
@@ -30,7 +34,7 @@ class Student(db.Model):
 class Attendance(db.Model):
     attid = db.Column(db.Integer, primary_key=True, autoincrement=True)
     studid = db.Column(db.Integer, db.ForeignKey('student.studid'), nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(IST))
     status = db.Column(db.String(10), nullable=False)  # values: "Present" / "Absent"
     food_id = db.Column(db.Integer, db.ForeignKey('food.foodid'), nullable=False)
 

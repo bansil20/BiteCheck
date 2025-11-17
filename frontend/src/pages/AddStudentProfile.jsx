@@ -50,7 +50,7 @@ function AddStudentProfile() {
         try {
             console.log("foem", formData);
             const res = await axios.post("http://127.0.0.1:5000/add_student", formData);
-            console.log("rem", res);
+            console.log("rem", res.data);
 
             alert(res.data.message);
             navigate("/dashboard");

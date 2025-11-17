@@ -80,28 +80,28 @@ function MealRating() {
           <div className="container mt-4">
             {/* Search */}
             <div className="d-flex justify-content-between align-items-center mb-4">
-  {/* Search box */}
-  <input
-    type="text"
-    className="form-control"
-    placeholder="Search food..."
-    value={searchTerm}
-    onChange={(e) => setSearchTerm(e.target.value)}
-    style={{ maxWidth: "250px" }}
-  />
+                {/* Search box */}
+                <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Search food..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{maxWidth: "250px"}}
+                />
 
-  {/* Meal type dropdown */}
-  <Form.Select
-    style={{ maxWidth: "180px" }}
-    value={mealType}
-    onChange={(e) => setMealType(e.target.value)}
-  >
-    <option value="">All Meals</option>
-    <option value="Breakfast">Breakfast</option>
-    <option value="Lunch">Lunch</option>
-    <option value="Dinner">Dinner</option>
-  </Form.Select>
-</div>
+                {/* Meal type dropdown */}
+                <Form.Select
+                    style={{maxWidth: "180px"}}
+                    value={mealType}
+                    onChange={(e) => setMealType(e.target.value)}
+                >
+                    <option value="">All Meals</option>
+                    <option value="Breakfast">Breakfast</option>
+                    <option value="Lunch">Lunch</option>
+                    <option value="Dinner">Dinner</option>
+                </Form.Select>
+            </div>
 
 
             {/* Food Cards */}
@@ -125,7 +125,7 @@ function MealRating() {
                       <div className="d-flex align-items-center">
                         {/* Image */}
                         <img
-                          src={`http://127.0.0.1:5000${food.foodimage}`}
+                          src={food.foodimage}
                           alt={food.foodname}
                           style={{
                             height: "120px",
