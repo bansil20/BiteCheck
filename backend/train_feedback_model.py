@@ -26,12 +26,12 @@ MLB_FILE = os.path.join(MODEL_DIR, "mlb.pkl")
 MODEL_FILE = os.path.join(MODEL_DIR, "model.pkl")
 
 # These are the labels (issues) your model will predict
+# ---- Config ----
 ALL_LABELS = [
     "oily", "cold", "salty", "spicy", "stale", "raw",
     "hard", "overcooked", "undercooked", "bland", "quality_low", "quantity_low"
 ]
 
-# Simple keyword map used to bootstrap labels from raw comments.
 KEYWORD_MAP = {
     "oily": ["oily", "greasy", "too oily", "oil"],
     "cold": ["cold", "lukewarm", "not hot", "served cold"],
@@ -47,11 +47,16 @@ KEYWORD_MAP = {
     "quantity_low": ["small", "insufficient", "less quantity", "portion small", "tiny portion"]
 }
 
-# Precompile regexes for speed
+# ✔ FIXED REGEX — whole-word exact matching
 KEYWORD_REGEX = {
-    label: re.compile("|".join(re.escape(k) for k in kws), flags=re.I)
+    label: re.compile(
+        r"\b(" + "|".join(re.escape(k) for k in kws) + r")\b",
+        flags=re.I
+    )
     for label, kws in KEYWORD_MAP.items()
 }
+
+
 
 
 def ensure_model_dir():

@@ -11,6 +11,15 @@ VECT_FILE = os.path.join(MODEL_DIR, "vectorizer.pkl")
 MLB_FILE = os.path.join(MODEL_DIR, "mlb.pkl")
 MODEL_FILE = os.path.join(MODEL_DIR, "model.pkl")
 
+
+
+import re
+
+def contains_word(word, text):
+    return re.search(rf"\b{re.escape(word)}\b", text) is not None
+
+
+
 def models_exist():
     return os.path.exists(VECT_FILE) and os.path.exists(MLB_FILE) and os.path.exists(MODEL_FILE)
 
@@ -25,6 +34,29 @@ def load_models():
     model = joblib.load(MODEL_FILE)
     return vect, mlb, model
 
+
+
+def auto_train_if_needed():
+    """
+    Only trains model if model files are missing.
+    (Full retrain on every backend restart is handled separately.)
+    """
+    from train_feedback_model import main as train_main
+
+    # check model files
+    vect_exists = os.path.exists(VECT_FILE)
+    mlb_exists = os.path.exists(MLB_FILE)
+    model_exists = os.path.exists(MODEL_FILE)
+
+    # If any file missing → train
+    if not (vect_exists and mlb_exists and model_exists):
+        print("⚠️ Model missing — training now...")
+        train_main()
+    else:
+        print("✔ Model files exist — no auto-training needed.")
+
+
+
 def predict_labels_for_comments(comments: List[str], threshold: float = 0.4):
     """
     Predict multi-labels for each comment string.
@@ -32,6 +64,11 @@ def predict_labels_for_comments(comments: List[str], threshold: float = 0.4):
       labels_per_comment: List[List[str]]
       probs_per_comment: List[dict] or None
     """
+
+
+    auto_train_if_needed()
+
+
     vect, mlb, model = load_models()
     texts = [c if isinstance(c, str) else "" for c in comments]
     X = vect.transform(texts)
@@ -107,8 +144,15 @@ def combine_with_sentiment(issue_counts: dict, comments: list):
     positive_words = ["good", "nice", "excellent", "fantastic", "amazing", "tasty", "loved"]
     negative_words = ["bad", "cold", "oily", "stale", "worst", "not good", "tasteless"]
 
-    pos = sum(any(w in c.lower() for w in positive_words) for c in comments)
-    neg = sum(any(w in c.lower() for w in negative_words) for c in comments)
+    pos = sum(
+        any(contains_word(w, c.lower()) for w in positive_words)
+        for c in comments
+    )
+
+    neg = sum(
+        any(contains_word(w, c.lower()) for w in negative_words)
+        for c in comments
+    )
 
     # --- sentiment summary ---
     if pos > neg:
@@ -150,3 +194,15 @@ def combine_with_sentiment(issue_counts: dict, comments: list):
     )
 
     return final_text
+
+
+# ============================
+# TRAIN MODEL ON SERVER STARTUP
+# ============================
+try:
+    print("🔁 Training model on server startup...")
+    from train_feedback_model import main as train_main
+    train_main()
+    print("✔ Startup training completed.")
+except Exception as e:
+    print("❌ Startup training failed:", e)

@@ -24,6 +24,11 @@ function AddStudentProfile() {
     const [message, setMessage] = useState("");
 
 
+    const [capturing, setCapturing] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [facesList, setFacesList] = useState([]);  // store 20 images
+
+
     const webcamRef = useRef(null);
     const handleChange = (e) => {
         const {name, value} = e.target;
@@ -31,15 +36,31 @@ function AddStudentProfile() {
     };
 
 
-    const handleCaptureFace = () => {
+    const handleCaptureFace = async () => {
         if (!webcamRef.current) return;
-        const imageSrc = webcamRef.current.getScreenshot();
-        if (imageSrc) {
-            setFormData({...formData, studface: imageSrc});
-            // store in state
-            setMessage("✅ Face captured successfully");
-            setShowCamera(false); // hide camera if desired
+
+        setCapturing(true);
+        setProgress(0);
+        const images = [];
+
+        for (let i = 0; i < 20; i++) {
+            const imgSrc = webcamRef.current.getScreenshot();
+            if (imgSrc) {
+                images.push(imgSrc);
+            }
+
+            setProgress(i + 1);
+            await new Promise((r) => setTimeout(r, 200)); // wait 200ms between captures
         }
+
+        setFacesList(images);
+
+        // Save first image for preview + formData
+        setFormData({...formData, studface: images[0]});
+
+        setCapturing(false);
+        setMessage("✅ 20 face images captured successfully!");
+        setShowCamera(false);
     };
 
 
@@ -48,8 +69,12 @@ function AddStudentProfile() {
         console.log("foemsddfsdfsdf");
 
         try {
-            console.log("foem", formData);
-            const res = await axios.post("http://127.0.0.1:5000/add_student", formData);
+            const payload = {
+                ...formData,
+                studface_list: facesList.length > 0 ? facesList : null,
+            };
+
+            const res = await axios.post("http://127.0.0.1:5000/add_student", payload);
             console.log("rem", res.data);
 
             alert(res.data.message);
@@ -178,10 +203,19 @@ function AddStudentProfile() {
                             <Button
                                 variant="success"
                                 className="mt-2"
-                                onClick={handleCaptureFace} // <-- captures face locally
+                                disabled={capturing}
+                                onClick={handleCaptureFace}
                             >
-                                Register Face
+                                {capturing ? "Capturing..." : "Capture 20 Photos"}
                             </Button>
+
+                            {capturing && (
+                                <p className="mt-2 fw-bold">
+                                    Capturing... {progress}/20
+                                </p>
+                            )}
+
+
                         </div>)}
 
                         {message && <p className="mt-2 text-center">{message}</p>}

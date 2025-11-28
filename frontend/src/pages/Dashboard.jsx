@@ -1,4 +1,4 @@
-import React, {useEffect} from "react";
+import React, {useEffect, useState} from "react";
 import {Row, Col, Card} from "react-bootstrap";
 import {FaCalendarCheck, FaUserFriends, FaBan} from "react-icons/fa";
 import "./Dashboard.css";
@@ -7,282 +7,423 @@ import {FaCamera} from "react-icons/fa6";
 import PageHeader from "../components/PageHeader/PageHeader";
 
 
+import {Line} from "react-chartjs-2";
+import {
+    Chart as ChartJS,
+    LineElement,
+    PointElement,
+    CategoryScale,
+    LinearScale
+} from "chart.js";
+
+ChartJS.register(LineElement, PointElement, CategoryScale, LinearScale);
+
+
 function Dashboard() {
     const [foodData, setFoodData] = React.useState({});
+    const [totalStudents, setTotalStudents] = React.useState(null);
+    const [mealStats, setMealStats] = React.useState(null);
+    const [todayMealCounts, setTodayMealCounts] = React.useState({
+        Breakfast: {present: 0, total: 0},
+        Lunch: {present: 0, total: 0},
+        Dinner: {present: 0, total: 0}
+    });
+    const [selectedMeal, setSelectedMeal] = React.useState("Dinner");
+    const [mealGraphData, setMealGraphData] = React.useState([]);
+    const [bestFood, setBestFood] = useState(null);
 
+
+    const loadMealStats = async () => {
+        const res = await fetch("http://localhost:5000/meal_attendance_stats");
+        const data = await res.json();
+        setMealStats(data);
+    };
 
     const loadFoodDetails = async () => {
-
-        // Fetch current food
         const foodRes = await fetch("http://localhost:5000/get_current_food");
         const currentFood = await foodRes.json();
 
-
-
-        // If food found → fetch suggestion
         if (currentFood.foodid) {
-
-            const sugRes = await fetch(
-                `http://localhost:5000/get_food_suggestion/${currentFood.foodid}`
-            );
+            const sugRes = await fetch(`http://localhost:5000/get_food_suggestion/${currentFood.foodid}`);
             const suggestion = await sugRes.json();
 
-            // Update state
             setFoodData({
                 foodname: currentFood.foodname,
                 foodimage: currentFood.foodimage,
                 suggestion_paragraph: suggestion.suggestion_paragraph,
-                currentFood : currentFood.status === "current" ? "Current Meal" : "Upcoming Meal"
+                currentFood: currentFood.status === "current" ? "Current Meal" : "Upcoming Meal"
             });
         }
+    };
+
+    const loadTotalStudents = async () => {
+        const res = await fetch("http://localhost:5000/total_students");
+        const data = await res.json();
+        setTotalStudents(data.total_students);
+    };
+
+    const loadTodayMealCounts = async () => {
+        try {
+            const res = await fetch("http://localhost:5000/meal_today_counts");
+            const data = await res.json();
+            setTodayMealCounts(data);
+        } catch (err) {
+            console.error("Error loading today meal counts:", err);
+        }
+    };
+
+    const loadBestFood = async () => {
+        const res = await fetch("http://localhost:5000/best_food_last7");
+        const data = await res.json();
+
+        if (data.message === "success") {
+            setBestFood({
+                name: data.name,
+                image: data.image,
+                avg_rating: data.avg_rating,
+                reviews: data.reviews
+            });
+        } else {
+            setBestFood(null);
+        }
+    };
+
+
+    const loadMealGraph = async (meal) => {
+        const res = await fetch(`http://localhost:5000/last7_meal_attendance/${meal}`);
+        const data = await res.json();
+        setMealGraphData(data);
     };
 
 
     useEffect(() => {
         loadFoodDetails();
+        loadTotalStudents();
+        loadMealStats();
+        loadTodayMealCounts();
+        loadBestFood();
     }, []);
+
+
+    useEffect(() => {
+        loadMealGraph(selectedMeal);
+    }, [selectedMeal]);
 
     return (
         <div className="container mt-4">
+
+            {/* PAGE HEADER */}
             <PageHeader PageTitle="Welcome Admin"/>
-            <br/>
 
-            <h4 className="fw-normal">&nbsp;&nbsp;Recent Data</h4>
-            <Row>
-                {/* Card 1 */}
+            {/* SECTION TITLE */}
+            <h4 className="fw-semibold mt-3 mb-3">Overview</h4>
+
+            {/* TOP KPI CARDS */}
+            <Row className="g-4">
+
+                {/* Total Students */}
                 <Col md={4}>
-                    <Card className="shadow-sm" style={{height: "160px"}}>
-                        <Card.Body>
-                            <div className="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6>Total Appointments</h6>
-                                    <h3>658 <span className="badge bg-success">+95%</span></h3>
-                                    <small className="text-success">+21% in last 7 days</small>
-                                </div>
-                                <div className="text-primary fs-1">
-                                    <FaCalendarCheck/>
-                                </div>
+                    <Card className="shadow-sm rounded-4 border-0 p-3">
+                        <div className="d-flex justify-content-between">
+                            <div>
+                                <p className="text-muted mb-1 small">Total Students</p>
+                                <h2 className="fw-bold mb-1">
+                                    {totalStudents ?? "–"}
+                                </h2>
+                                <small className="text-secondary">All registered students</small>
                             </div>
-                        </Card.Body>
+                            <div className="d-flex align-items-center fs-1 text-primary opacity-75">
+                                <FaUserFriends/>
+                            </div>
+                        </div>
                     </Card>
                 </Col>
 
-                {/* Card 2 */}
+                {/* Present Today Current Meal */}
                 <Col md={4}>
-                    <Card className="shadow-sm" style={{height: "160px"}}>
-                        <Card.Body>
-                            <div className="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6>Online Consultations</h6>
-                                    <h3>125 <span className="badge bg-danger">-15%</span></h3>
-                                    <small className="text-danger">-21% in last 7 days</small>
-                                </div>
-                                <div className="text-danger fs-1">
-                                    <FaUserFriends/>
-                                </div>
+                    <Card className="shadow-sm rounded-4 border-0 p-3">
+                        <div className="d-flex justify-content-between">
+                            <div>
+                                <p className="text-muted mb-1 small">
+                                    {mealStats ? `${mealStats.meal} Present` : "Loading..."}
+                                </p>
+                                <h2 className="fw-bold mb-1">
+                                    {mealStats?.present ?? "–"}
+                                </h2>
+                                <small className="text-secondary">Students marked present</small>
                             </div>
-                        </Card.Body>
+                            <div className="d-flex align-items-center fs-1 text-success opacity-75">
+                                <FaCalendarCheck/>
+                            </div>
+                        </div>
                     </Card>
                 </Col>
 
-                {/* Card 3 */}
+                {/* Absent Today */}
                 <Col md={4}>
-                    <Card className="shadow-sm" style={{height: "160px"}}>
-                        <Card.Body>
-                            <div className="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6>Cancelled Appointments</h6>
-                                    <h3>35 <span className="badge bg-success">+45%</span></h3>
-                                    <small className="text-success">+31% in last 7 days</small>
-                                </div>
-                                <div className="text-success fs-1">
-                                    <FaBan/>
-                                </div>
+                    <Card className="shadow-sm rounded-4 border-0 p-3">
+                        <div className="d-flex justify-content-between">
+                            <div>
+                                <p className="text-muted mb-1 small">
+                                    {mealStats ? `${mealStats.meal} Absent` : "Loading..."}
+                                </p>
+                                <h2 className="fw-bold mb-1">
+                                    {mealStats?.absent ?? "–"}
+                                </h2>
+                                <small className="text-secondary">Students absent this meal</small>
                             </div>
-                        </Card.Body>
+                            <div className="d-flex align-items-center fs-1 text-danger opacity-75">
+                                <FaBan/>
+                            </div>
+                        </div>
                     </Card>
                 </Col>
+
             </Row>
 
-            {/* today  meal and graph */}
-            <Row>
-                {/* Card 4 */}
-                <Col md={4} className="pt-4">
+            {/* MEAL + SUGGESTION SECTION */}
+            <h4 className="fw-semibold mt-5 mb-3">Today's Meal</h4>
 
-                    <Card className="shadow-lg border-0 rounded-4">
+            <Row className="g-4">
+
+                {/* Current Meal & Suggestion Card */}
+                <Col md={4}>
+                    <Card className="shadow-lg rounded-4 border-0">
                         <Card.Body className="p-4">
+                        <span className="text-uppercase text-muted small fw-bold">
+                            {foodData.currentFood}
+                        </span>
 
-                            <div className="d-flex justify-content-between align-items-start">
+                            <h3 className="fw-bold mt-1">{foodData.foodname || "Loading..."}</h3>
 
-                                {/* LEFT SIDE */}
-                                <div className="me-3" style={{maxWidth: "70%"}}>
+                            <div
+                                className="p-3 mt-3 rounded-3"
+                                style={{
+                                    background: "#f8f9fa",
+                                    borderLeft: "4px solid #ff7e5f",
+                                    boxShadow: "0 2px 6px rgba(0,0,0,0.05)"
+                                }}
+                            >
+                                <h6 className="fw-semibold mb-1">Suggestion</h6>
+                                <p className="text-secondary small mb-0">
+                                    {foodData.suggestion_paragraph || "Fetching..."}
+                                </p>
+                            </div>
 
-                                    {/* Small Title */}
-                                    <span className="text-uppercase text-muted fw-semibold small">
-                        {foodData.currentFood}
-                    </span>
-
-                                    {/* Meal Name */}
-                                    <h3 className="fw-bold mt-1 mb-3 text-dark">
-                                        {foodData.foodname || "Loading..."}
-                                    </h3>
-
-                                    {/* Suggestion Title */}
-                                    <h6 className="fw-bold text-dark mb-2" style={{fontSize: "14px"}}>
-                                        Suggestion
-                                    </h6>
-
-                                    {/* Suggestion Box */}
-                                    <div
-                                        className="p-3 rounded-3"
-                                        style={{
-                                            background: "#f8f9fa",
-                                            borderLeft: "4px solid #ff7e5f",
-                                            boxShadow: "0 2px 6px rgba(0,0,0,0.05)"
-                                        }}
-                                    >
-                                        <p className="mb-0 text-secondary" style={{fontSize: "14px"}}>
-                                            {foodData.suggestion_paragraph || "Fetching suggestion..."}
-                                        </p>
-                                    </div>
-
-                                </div>
-
-                                {/* RIGHT SIDE IMAGE */}
-                                <div
-                                    className="rounded-4 overflow-hidden shadow"
+                            <div className="mt-3 d-flex justify-content-center">
+                                <img
+                                    src={foodData.foodimage}
+                                    alt={foodData.foodname}
+                                    className="rounded-4 shadow"
                                     style={{
                                         width: "100px",
                                         height: "100px",
-                                        border: "3px solid #ffffff"
+                                        objectFit: "cover"
                                     }}
+                                />
+                            </div>
+                        </Card.Body>
+                    </Card>
+                </Col>
+
+                {/* GRAPH CARD */}
+                <Col md={8}>
+                    <Card className="shadow-sm rounded-4 border-0">
+                        <Card.Body className="p-3">
+
+                            <div className="d-flex justify-content-between align-items-center mb-2">
+                                <h6 className="mb-0 fw-semibold">
+                                    Last 7 Days {selectedMeal} Attendance
+                                </h6>
+
+                                <select
+                                    className="form-select w-auto"
+                                    value={selectedMeal}
+                                    onChange={(e) => setSelectedMeal(e.target.value)}
                                 >
-                                    <img
-                                        src={`${foodData.foodimage}`}
-                                        alt={foodData.foodname}
-                                        className="w-100 h-100"
-                                        style={{objectFit: "cover"}}
+                                    <option value="Breakfast">Breakfast</option>
+                                    <option value="Lunch">Lunch</option>
+                                    <option value="Dinner">Dinner</option>
+                                </select>
+                            </div>
+
+                            {/* GRAPH HEIGHT FIXED TO CARD */}
+                            <div
+                                style={{
+                                    width: "100%",
+                                    height: "280px",
+                                    padding: "5px 0",
+                                    position: "relative"
+                                }}
+                                className="graph-wrapper"
+                            >
+                                {mealGraphData.length > 0 ? (
+                                    <Line
+                                        data={{
+                                            labels: mealGraphData.map(item =>
+                                                new Date(item.date).toLocaleDateString("en-IN", {
+                                                    day: "2-digit",
+                                                    month: "short"
+                                                })
+                                            ),
+                                            datasets: [
+                                                {
+                                                    label: `${selectedMeal} Attendance`,
+                                                    data: mealGraphData.map(item => item.present),
+
+                                                    // Gorgeous gradient stroke
+                                                    borderColor: "rgba(56, 132, 255, 1)",
+                                                    borderWidth: 3,
+                                                    tension: 0.45,
+
+                                                    // Gradient fill (blue → transparent)
+                                                    backgroundColor: function (context) {
+                                                        const chart = context.chart;
+                                                        const {ctx, chartArea} = chart;
+                                                        if (!chartArea) return null;
+
+                                                        const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                                                        gradient.addColorStop(0, "rgba(56, 132, 255, 0.35)");
+                                                        gradient.addColorStop(1, "rgba(56, 132, 255, 0)");
+                                                        return gradient;
+                                                    },
+
+                                                    fill: true,
+
+                                                    // Clean circular points
+                                                    pointRadius: 4,
+                                                    pointBackgroundColor: "#ffffff",
+                                                    pointBorderColor: "#3884ff",
+                                                    pointBorderWidth: 2,
+                                                    pointHoverRadius: 7,
+                                                },
+                                            ]
+                                        }}
+
+                                        options={{
+                                            maintainAspectRatio: false,
+                                            responsive: true,
+
+                                            plugins: {
+                                                legend: {display: false},
+                                                tooltip: {
+                                                    backgroundColor: "rgba(0, 0, 0, 0.85)",
+                                                    titleColor: "#fff",
+                                                    bodyColor: "#fff",
+                                                    borderWidth: 0,
+                                                    padding: 10,
+                                                    cornerRadius: 8,
+                                                    displayColors: false
+                                                }
+                                            },
+
+                                            scales: {
+                                                x: {
+                                                    grid: {display: false},
+                                                    ticks: {
+                                                        color: "#6c757d",
+                                                        font: {size: 12, weight: "500"},
+                                                    }
+                                                },
+                                                y: {
+                                                    beginAtZero: true,
+                                                    grid: {
+                                                        color: "rgba(0,0,0,0.05)",
+                                                        drawBorder: false
+                                                    },
+                                                    ticks: {
+                                                        color: "#6c757d",
+                                                        font: {size: 12, weight: "500"},
+                                                        stepSize: 1
+                                                    }
+                                                }
+                                            }
+                                        }}
                                     />
-                                </div>
-
+                                ) : (
+                                    <p className="text-center mt-4 text-muted">Loading graph…</p>
+                                )}
                             </div>
 
                         </Card.Body>
                     </Card>
-
                 </Col>
 
-
-                {/* Card 5 */}
-                <Col style={{paddingTop: 30}}>
-                    <Card className="shadow-sm" style={{height: "350px"}}>
-                        <Card.Body>
-                            <div className="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6>Upcoming Meal</h6>
-                                    <h3>500 <span className="badge bg-success">+12%</span></h3>
-                                    <small className="text-success">+17% in last 7 days</small>
-                                </div>
-                                <div className="text-primary fs-1">
-                                    <FaCamera/>
-                                </div>
-                            </div>
-                        </Card.Body>
-                    </Card>
-                </Col>
             </Row>
-            <Row>
-                <Col md={3} style={{paddingTop: 30}}>
-                    <Card className="shadow-sm" style={{height: "200px"}}>
-                        <Card.Body>
-                            <div className="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6>Upcoming Meal</h6>
-                                    <h3>500 <span className="badge bg-success">+12%</span></h3>
-                                    <small className="text-success">+17% in last 7 days</small>
-                                </div>
-                                <div className="text-primary fs-1">
-                                    <FaCamera/>
-                                </div>
-                            </div>
-                        </Card.Body>
+
+            {/* BOTTOM GRID: BREAKFAST / LUNCH / DINNER / BEST */}
+            <Row className="g-4 mt-4">
+
+                {/* Breakfast */}
+                <Col md={3}>
+                    <Card className="shadow-sm rounded-4 border-0 p-3 text-center">
+                        <h6 className="fw-semibold">Breakfast</h6>
+                        <h2 className="fw-bold">
+                            {todayMealCounts.Breakfast.present}
+                            <span className="text-muted small"> / {totalStudents}</span>
+                        </h2>
                     </Card>
                 </Col>
 
-                <Col md={3} style={{paddingTop: 30}}>
-                    <Card className="shadow-sm" style={{height: "200px"}}>
-                        <Card.Body>
-                            <div className="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6>Upcoming Meal</h6>
-                                    <h3>500 <span className="badge bg-success">+12%</span></h3>
-                                    <small className="text-success">+17% in last 7 days</small>
-                                </div>
-                                <div className="text-primary fs-1">
-                                    <FaCamera/>
-                                </div>
-                            </div>
-                        </Card.Body>
+                {/* Lunch */}
+                <Col md={3}>
+                    <Card className="shadow-sm rounded-4 border-0 p-3 text-center">
+                        <h6 className="fw-semibold">Lunch</h6>
+                        <h2 className="fw-bold">
+                            {todayMealCounts.Lunch.present}
+                            <span className="text-muted small"> / {totalStudents}</span>
+                        </h2>
                     </Card>
                 </Col>
 
-
-                <Col md={3} style={{paddingTop: 30}}>
-                    <Card className="shadow-sm" style={{height: "200px"}}>
-                        <Card.Body>
-                            <div className="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6>Upcoming Meal</h6>
-                                    <h3>500 <span className="badge bg-success">+12%</span></h3>
-                                    <small className="text-success">+17% in last 7 days</small>
-                                </div>
-                                <div className="text-primary fs-1">
-                                    <FaCamera/>
-                                </div>
-                            </div>
-                        </Card.Body>
+                {/* Dinner */}
+                <Col md={3}>
+                    <Card className="shadow-sm rounded-4 border-0 p-3 text-center">
+                        <h6 className="fw-semibold">Dinner</h6>
+                        <h2 className="fw-bold">
+                            {todayMealCounts.Dinner.present}
+                            <span className="text-muted small"> / {totalStudents}</span>
+                        </h2>
                     </Card>
                 </Col>
 
+                {/* Best Food Card */}
+                <Col md={3}>
+                    <Card className="shadow-sm rounded-4 border-0 p-3">
+                        <h6 className="fw-semibold mb-3">⭐ Best Food (Last 7 Days)</h6>
 
-                <Col md={3} style={{paddingTop: 30}}>
-                    <Card className="shadow-sm" style={{height: "200px"}}>
-                        <Card.Body>
-                            <div className="d-flex justify-content-between align-items-center">
+                        {bestFood && bestFood.name ? (
+                            <div className="d-flex align-items-center">
+                                <img
+                                    src={bestFood.image}
+                                    alt={bestFood.name}
+                                    className="rounded-4 shadow"
+                                    style={{
+                                        width: "60px",
+                                        height: "60px",
+                                        objectFit: "cover",
+                                        marginRight: "12px"
+                                    }}
+                                />
+
                                 <div>
-                                    <h6>Upcoming Meal</h6>
-                                    <h3>500 <span className="badge bg-success">+12%</span></h3>
-                                    <small className="text-success">+17% in last 7 days</small>
-                                </div>
-                                <div className="text-primary fs-1">
-                                    <FaCamera/>
+                                    <h6 className="fw-bold mb-1">{bestFood.name}</h6>
+                                    <small className="text-muted">
+                                        ⭐ {bestFood.avg_rating} ({bestFood.reviews} reviews)
+                                    </small>
                                 </div>
                             </div>
-                        </Card.Body>
+                        ) : (
+                            <p className="text-muted">No data available</p>
+                        )}
                     </Card>
                 </Col>
 
-                {/* <div className="space-y-6"> */}
-                {/* First row */}
-                {/* <div className="grid grid-cols-4 gap-6"> */}
-                {/* <Card title="Total Patient" value="658" change="+31%" changeColor="text-green-500" /> */}
-                {/* <Card title="Video Consultation" value="256" change="-21%" changeColor="text-red-500" /> */}
-                {/* <Card title="Rescheduled" value="141" change="+64%" changeColor="text-green-500" /> */}
-                {/* <Card title="Pre Visit Bookings" value="524" change="+38%" changeColor="text-green-500" /> */}
-                {/* </div> */}
-                {/*  */}
-                {/* Second row */}
-                {/* <div className="grid grid-cols-4 gap-6"> */}
-                {/* <Card title="New Patients" value="320" change="+12%" changeColor="text-green-500" /> */}
-                {/* <Card title="Follow-up Consultations" value="145" change="-8%" changeColor="text-red-500" /> */}
-                {/* <Card title="Cancellations" value="28" change="+3%" changeColor="text-green-500" /> */}
-                {/* <Card title="Lab Tests" value="94" change="+15%" changeColor="text-green-500" /> */}
-                {/* </div> */}
-                {/* </div> */}
             </Row>
 
         </div>
     );
+
 }
 
 export default Dashboard;

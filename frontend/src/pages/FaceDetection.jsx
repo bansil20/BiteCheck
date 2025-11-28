@@ -8,6 +8,7 @@ function FaceDetection() {
     const [message, setMessage] = useState("");
     const [secret, setSecret] = useState("");
 
+    // Auto Scan
     useEffect(() => {
         const id = setInterval(() => {
             captureAndRecognize();
@@ -16,6 +17,7 @@ function FaceDetection() {
         return () => clearInterval(id);
     }, []);
 
+    // FACE SCAN FUNCTION
     const captureAndRecognize = async () => {
         if (!webcamRef.current) return;
         const imageSrc = webcamRef.current.getScreenshot();
@@ -25,12 +27,17 @@ function FaceDetection() {
             const res = await axios.post("http://127.0.0.1:5000/recognize_face", {
                 image: imageSrc,
             });
-            setMessage(res.data.message || "✔ Success");
+
+            // Always show message (success OR already marked)
+            setMessage(res.data.message || "");
+
         } catch (err) {
+            // Do NOT stop scanning — just show message
             setMessage(err.response?.data?.message || "❌ Error recognizing face");
         }
     };
 
+    // SECRET CODE FUNCTION
     const submitCode = async () => {
         if (!secret.trim()) {
             setMessage("❌ Please enter your 6-digit code");
@@ -44,6 +51,7 @@ function FaceDetection() {
 
             setMessage(res.data.message);
             setSecret("");
+
         } catch (err) {
             setMessage(err.response?.data?.message || "❌ Error marking attendance");
         }
@@ -82,7 +90,7 @@ function FaceDetection() {
                     <b>{message}</b>
                 </div>
 
-                {/* SECRET CODE BOX */}
+                {/* Secret Code Box */}
                 <div
                     className="card shadow p-3 mt-4"
                     style={{
