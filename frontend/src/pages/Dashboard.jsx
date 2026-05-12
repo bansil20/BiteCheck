@@ -2,7 +2,6 @@ import React, {useEffect, useState} from "react";
 import {Row, Col, Card} from "react-bootstrap";
 import {FaCalendarCheck, FaUserFriends, FaBan} from "react-icons/fa";
 import "./Dashboard.css";
-import {FaCamera} from "react-icons/fa6";
 
 import PageHeader from "../components/PageHeader/PageHeader";
 

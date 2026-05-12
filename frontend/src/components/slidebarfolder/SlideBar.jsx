@@ -4,7 +4,6 @@ import {useEffect, useState} from "react";
 import PATHS from "../../utlis/constants/Path";
 import {MdFace, MdFeedback, MdQrCodeScanner} from "react-icons/md";
 import {
-    FaDownload,
     FaRegClock,
     FaStar,
     FaTachometerAlt,
