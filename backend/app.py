@@ -90,7 +90,7 @@ def register_user():
     db.session.add(new_user)
     db.session.commit()
 
-    # ✅ Include username and userid in response
+    #  Include username and userid in response
     return jsonify({
         "success": True,
         "message": "Registration successful!",

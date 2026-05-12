@@ -57,7 +57,7 @@ def auto_train_if_needed():
 
 
 
-def predict_labels_for_comments(comments: List[str], threshold: float = 0.4):
+def predict_labels_for_comments(comments: List[str], threshold: float = 0.25):
     """
     Predict multi-labels for each comment string.
     Returns:
@@ -163,7 +163,29 @@ def combine_with_sentiment(issue_counts: dict, comments: list):
         sentiment_summary = "The feedback is mixed."
 
     if not issue_counts:
-        return sentiment_summary + " No specific issues were detected."
+        fallback_issues = {}
+
+        for comment in comments:
+            c = comment.lower()
+
+            for issue, keywords in {
+                "oily": ["oily", "greasy", "oil"],
+                "cold": ["cold", "not hot"],
+                "salty": ["salty", "too salty"],
+                "spicy": ["spicy", "too spicy"],
+                "stale": ["stale", "old"],
+                "raw": ["raw", "uncooked"],
+                "hard": ["hard", "tough"],
+                "bland": ["bland", "tasteless"]
+            }.items():
+
+                if any(k in c for k in keywords):
+                    fallback_issues[issue] = fallback_issues.get(issue, 0) + 1
+
+        issue_counts = fallback_issues
+
+        if not issue_counts:
+            return sentiment_summary + " No specific issues were detected."
 
     # --- issue phrase ---
     issues = ", ".join(issue_counts.keys())

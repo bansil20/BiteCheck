@@ -119,7 +119,7 @@ def train_and_save(texts, label_lists):
     Y = mlb.fit_transform(label_lists)
 
     # Model: One-vs-Rest Logistic Regression
-    clf = OneVsRestClassifier(LogisticRegression(max_iter=2000))
+    clf = OneVsRestClassifier(LogisticRegression(max_iter=2000)) #LogisticRegression model
     clf.fit(X, Y)
 
     # Save
