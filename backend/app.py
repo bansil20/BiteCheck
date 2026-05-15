@@ -10,12 +10,15 @@ from datetime import datetime, date
 from models import db, Student, Timetable, Attendance, food, Feedback, User
 from flask_migrate import Migrate
 from sqlalchemy import cast, Date
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
 
 # ================= DATABASE CONFIG =================
-app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:@localhost:3306/bitecheck"
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db.init_app(app)
 migrate = Migrate(app, db)
